@@ -1,0 +1,106 @@
+spring:
+  application:
+    name: ucsg-analytics-backend
+
+  # ── Base de datos ──────────────────────────────────────────────────
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ucsg_analytics
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate            # Flyway gestiona el esquema — nunca auto/update en prod
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        default_schema: public
+    show-sql: false                 # Activar solo en dev local
+
+  # ── Flyway (migraciones) ───────────────────────────────────────────
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  # ── Cache (Caffeine — in-memory) ──────────────────────────────────
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=60s
+
+# ── Servidor ────────────────────────────────────────────────────────
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+# ── Seguridad JWT (valores reales en variables de entorno) ──────────
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:cambia-este-secreto-en-produccion-minimo-256bits}
+      expiration-ms: 86400000      # 24 horas
+      refresh-expiration-ms: 604800000  # 7 días
+
+  # ── Instagram Graph API ────────────────────────────────────────────
+  instagram:
+    account-id: ${INSTAGRAM_ACCOUNT_ID}
+    access-token: ${INSTAGRAM_LONG_LIVED_TOKEN}
+    base-url: https://graph.instagram.com/v19.0
+    # Frecuencia del CRON job de ingesta (cada 2 horas)
+    cron-expression: "0 0 */2 * * *"
+    # Solo posts de los últimos 30 días
+    days-lookback: 30
+
+  # ── Política de bloqueo de cuenta ─────────────────────────────────
+  security:
+    max-failed-attempts: 5
+
+# ── Actuator ────────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# ── Logging ─────────────────────────────────────────────────────────
+logging:
+  level:
+    ec.ucsg.analytics: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: WARN
+
+---
+# Perfil de desarrollo local
+spring:
+  config:
+    activate:
+      on-profile: dev
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    clean-on-validation-error: false
+
+---
+# Perfil de producción
+spring:
+  config:
+    activate:
+      on-profile: prod
+  jpa:
+    show-sql: false
+logging:
+  level:
+    ec.ucsg.analytics: INFO
+    org.springframework.security: WARN
