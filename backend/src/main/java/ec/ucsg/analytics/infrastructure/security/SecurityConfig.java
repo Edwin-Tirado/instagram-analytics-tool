@@ -26,7 +26,11 @@ import java.util.List;
  * Configuración central de Spring Security.
  *
  * Arquitectura: Stateless JWT — no se usan sesiones HTTP.
- * El JwtAuthenticationFilter (TODO Sprint 2) se registrará aquí.
+ *
+ * Orden de filtros:
+ *   1. RateLimitingFilter      → bloquea IPs abusivas antes de cualquier lógica
+ *   2. JwtAuthenticationFilter → extrae identidad del Bearer token
+ *   3. UsernamePasswordAuthenticationFilter (Spring default, no se usa en modo JWT)
  *
  * Matriz de acceso por endpoint:
  * ┌─────────────────────────────────┬──────────────────────────┐
@@ -34,7 +38,7 @@ import java.util.List;
  * ├─────────────────────────────────┼──────────────────────────┤
  * │ POST /api/auth/**               │ Público                  │
  * │ GET  /api/public/**             │ Público                  │
- * │ GET  /api/events (APPROVED)     │ Autenticado              │
+ * │ GET  /api/events/map            │ Público                  │
  * │ PUT  /api/events/*/approve      │ SUPERVISOR, ADMIN        │
  * │ PUT  /api/events/*/reject       │ SUPERVISOR, ADMIN        │
  * │ GET  /api/supervisor/**         │ SUPERVISOR, ADMIN        │
@@ -48,8 +52,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final UserDetailsServiceImpl userDetailsService;
-    private final RateLimitingFilter rateLimitingFilter;
+    private final UserDetailsServiceImpl  userDetailsService;
+    private final RateLimitingFilter      rateLimitingFilter;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     // ── Beans de infraestructura ────────────────────────────────────
 
@@ -92,8 +97,8 @@ public class SecurityConfig {
             // Reglas de autorización por ruta
             .authorizeHttpRequests(auth -> auth
 
-                // Registro e inicio de sesión — públicos
-                .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll()
+                // Registro, login y refresh — públicos (el refresh valida el token internamente)
+                .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll()
 
                 // Mapa y listado de eventos aprobados — públicos (consumidos por el mapa)
                 .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
@@ -117,11 +122,11 @@ public class SecurityConfig {
             // Proveedor de autenticación personalizado
             .authenticationProvider(authenticationProvider())
 
-            // Rate Limiting antes de cualquier autenticación
-            .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class);
+            // JWT valida identidad antes del filtro de usuario/contraseña
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
 
-            // TODO Sprint 2: registrar JwtAuthenticationFilter
-            // .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            // Rate Limiting se ejecuta antes del filtro JWT
+            .addFilterBefore(rateLimitingFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }
