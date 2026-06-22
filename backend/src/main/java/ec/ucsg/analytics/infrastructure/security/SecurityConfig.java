@@ -39,8 +39,8 @@ import java.util.List;
  * │ POST /api/auth/**               │ Público                  │
  * │ GET  /api/public/**             │ Público                  │
  * │ GET  /api/events/map            │ Público                  │
- * │ PUT  /api/events/*/approve      │ SUPERVISOR, ADMIN        │
- * │ PUT  /api/events/*/reject       │ SUPERVISOR, ADMIN        │
+ * │ PUT  /api/events/{id}/approve      │ SUPERVISOR, ADMIN        │
+ * │ PUT  /api/events/{id}/reject       │ SUPERVISOR, ADMIN        │
  * │ GET  /api/supervisor/**         │ SUPERVISOR, ADMIN        │
  * │ /**  /api/admin/**              │ ADMIN                    │
  * │ Cualquier otro                  │ Autenticado              │
@@ -110,10 +110,8 @@ public class SecurityConfig {
                 // Gestión completa del sistema
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                // Revisión de posts pendientes
+                // Gestión de eventos publicados (editar y eliminar)
                 .requestMatchers("/api/supervisor/**").hasAnyRole("SUPERVISOR", "ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/events/*/approve").hasAnyRole("SUPERVISOR", "ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/events/*/reject").hasAnyRole("SUPERVISOR", "ADMIN")
 
                 // Todo lo demás requiere autenticación
                 .anyRequest().authenticated()

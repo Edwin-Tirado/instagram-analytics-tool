@@ -179,6 +179,32 @@ public class GlobalExceptionHandler {
             .body(ErrorResponse.of(401, "Invalid Token", "El token proporcionado no es válido.", request.getRequestURI()));
     }
 
+    // ── Entidad no encontrada ────────────────────────────────────────
+
+    @ExceptionHandler(jakarta.persistence.EntityNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(
+            jakarta.persistence.EntityNotFoundException ex,
+            HttpServletRequest request) {
+
+        return ResponseEntity
+            .status(HttpStatus.NOT_FOUND)
+            .body(ErrorResponse.of(404, "Not Found", ex.getMessage(), request.getRequestURI()));
+    }
+
+    // ── Transición de estado inválida ────────────────────────────────
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalState(
+            IllegalStateException ex,
+            HttpServletRequest request) {
+
+        log.warn("Transición de estado inválida en {}: {}", request.getRequestURI(), ex.getMessage());
+
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(ErrorResponse.of(409, "Invalid State Transition", ex.getMessage(), request.getRequestURI()));
+    }
+
     // ── Catch-all: errores internos no previstos ─────────────────────
 
     @ExceptionHandler(Exception.class)

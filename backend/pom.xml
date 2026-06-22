@@ -103,6 +103,12 @@
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
 
+        <!-- ── Correo electrónico ───────────────────────────────── -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
         <!-- ── Utilidades ───────────────────────────────────────── -->
         <dependency>
             <groupId>org.projectlombok</groupId>

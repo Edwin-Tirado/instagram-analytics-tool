@@ -2,11 +2,32 @@ spring:
   application:
     name: ucsg-analytics-backend
 
+  # ── Serialización JSON ─────────────────────────────────────────────
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: America/Guayaquil
+
+  # ── Correo electrónico (Mailtrap sandbox) ─────────────────────────
+  mail:
+    host: sandbox.smtp.mailtrap.io
+    port: 2525
+    username: "876fb3db99cb61"
+    password: "175a1603cbeaf7"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+        debug: false
+
   # ── Base de datos ──────────────────────────────────────────────────
   datasource:
     url: jdbc:postgresql://localhost:5432/ucsg_analytics
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    username: "postgres"
+    password: "postgres"
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2
@@ -14,13 +35,13 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate            # Flyway gestiona el esquema — nunca auto/update en prod
+      ddl-auto: validate            # Flyway gestiona el esquema
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
         default_schema: public
-    show-sql: false                 # Activar solo en dev local
+    show-sql: false
 
   # ── Flyway (migraciones) ───────────────────────────────────────────
   flyway:
@@ -40,27 +61,27 @@ server:
   servlet:
     context-path: /
 
-# ── Seguridad JWT (valores reales en variables de entorno) ──────────
+# ── Configuración de la Aplicación ──────────────────────────────────
 app:
   security:
     jwt:
-      secret: ${JWT_SECRET:cambia-este-secreto-en-produccion-minimo-256bits}
+      secret: "esta-es-una-clave-secreta-muy-larga-para-desarrollo-local-ucsg-2026"
       expiration-ms: 86400000      # 24 horas
       refresh-expiration-ms: 604800000  # 7 días
+    max-failed-attempts: 5
 
   # ── Instagram Graph API ────────────────────────────────────────────
   instagram:
-    account-id: ${INSTAGRAM_ACCOUNT_ID}
-    access-token: ${INSTAGRAM_LONG_LIVED_TOKEN}
+    account-id: "17841467472099951"
+    access-token: "EAANXHv9mZBEoBR0kx8p9zD8jXx27UXZCjg6ZAu6ZBEZAxZCDYmM8oFBFwNlgookQ4WmDLaCvy0OvhshxzIy1Bclccj1HrhGXOC3zUMUSaFZBrr0HReKdn1BC6nioWTWfnZCDKBwkv5pqeyqBqBJtKZCzmp6XeZCa4MJt3fkOiQFXIxENZBeODsJGm5swkDM3Wq5"
     base-url: https://graph.instagram.com/v19.0
-    # Frecuencia del CRON job de ingesta (cada 2 horas)
     cron-expression: "0 0 */2 * * *"
-    # Solo posts de los últimos 30 días
     days-lookback: 30
 
-  # ── Política de bloqueo de cuenta ─────────────────────────────────
-  security:
-    max-failed-attempts: 5
+  # ── Correo — configuración de la aplicación ───────────────────────
+  mail:
+    from: noreply@ucsg.edu.ec
+    from-name: UCSG Campus Analytics
 
 # ── Actuator ────────────────────────────────────────────────────────
 management:
