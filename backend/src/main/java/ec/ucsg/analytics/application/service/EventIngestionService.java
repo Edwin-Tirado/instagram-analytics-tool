@@ -1,22 +1,30 @@
 package ec.ucsg.analytics.application.service;
 
+import ec.ucsg.analytics.application.dto.response.IngestionRunResponse;
+import ec.ucsg.analytics.application.dto.response.PageResponse;
 import ec.ucsg.analytics.domain.enums.EventStatus;
 import ec.ucsg.analytics.domain.model.Event;
 import ec.ucsg.analytics.domain.model.EventImage;
+import ec.ucsg.analytics.domain.model.IngestionRun;
 import ec.ucsg.analytics.domain.model.Zone;
 import ec.ucsg.analytics.domain.repository.EventImageRepository;
 import ec.ucsg.analytics.domain.repository.EventRepository;
+import ec.ucsg.analytics.domain.repository.IngestionRunRepository;
 import ec.ucsg.analytics.infrastructure.instagram.CaptionParser;
 import ec.ucsg.analytics.infrastructure.instagram.InstagramGraphApiClient;
 import ec.ucsg.analytics.infrastructure.instagram.dto.InstagramMediaItem;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Orquestador del pipeline de ingesta de posts de Instagram.
@@ -41,41 +49,75 @@ public class EventIngestionService {
     private static final String AUTO_REJECT_REASON =
         "AUTO: contenido publicitario o spam detectado por el clasificador";
 
-    private final InstagramGraphApiClient  apiClient;
+    private final InstagramGraphApiClient    apiClient;
     private final EventClassificationService classificationService;
-    private final ZoneMatchingService      zoneMatchingService;
-    private final EventRepository          eventRepository;
-    private final EventImageRepository     eventImageRepository;
+    private final ZoneMatchingService        zoneMatchingService;
+    private final EventRepository            eventRepository;
+    private final EventImageRepository       eventImageRepository;
+    private final IngestionRunRepository     ingestionRunRepository;
 
-    // ── Punto de entrada (llamado desde el CRON job) ────────────────
+    // ── Punto de entrada (llamado desde el CRON job y el AdminController) ──
 
     /**
-     * Recupera todos los posts recientes de Instagram y los procesa.
-     * Transaccional por post individual para que un fallo aislado no
-     * revierta los eventos ya guardados en la misma ejecución.
+     * Ejecuta el pipeline completo de ingesta y persiste el resultado en {@link IngestionRun}.
+     *
+     * @param triggerType SCHEDULED (CRON) o MANUAL (endpoint admin)
+     * @return la entidad {@link IngestionRun} con el resultado final
      */
-    public void runIngestion() {
-        List<InstagramMediaItem> posts = apiClient.fetchRecentPosts();
-        log.info("Iniciando procesamiento de {} posts", posts.size());
+    public IngestionRun runIngestion(IngestionRun.TriggerType triggerType) {
 
-        int created = 0, merged = 0, rejected = 0, skipped = 0;
+        IngestionRun run = ingestionRunRepository.save(
+            IngestionRun.builder()
+                .startedAt(LocalDateTime.now())
+                .triggerType(triggerType)
+                .build()
+        );
 
-        for (InstagramMediaItem post : posts) {
-            try {
-                IngestionOutcome outcome = processSinglePost(post);
-                switch (outcome) {
-                    case CREATED  -> created++;
-                    case MERGED   -> merged++;
-                    case REJECTED -> rejected++;
-                    case SKIPPED  -> skipped++;
+        try {
+            List<InstagramMediaItem> posts = apiClient.fetchRecentPosts();
+            log.info("Procesando {} posts (trigger={})", posts.size(), triggerType);
+
+            int created = 0, merged = 0, rejected = 0, skipped = 0;
+
+            for (InstagramMediaItem post : posts) {
+                try {
+                    IngestionOutcome outcome = processSinglePost(post);
+                    switch (outcome) {
+                        case CREATED  -> created++;
+                        case MERGED   -> merged++;
+                        case REJECTED -> rejected++;
+                        case SKIPPED  -> skipped++;
+                    }
+                } catch (Exception e) {
+                    log.error("Error procesando post {}: {}", post.getId(), e.getMessage(), e);
                 }
-            } catch (Exception e) {
-                log.error("Error procesando post {}: {}", post.getId(), e.getMessage(), e);
             }
+
+            run.complete(created, merged, rejected, skipped);
+            log.info("Ingesta finalizada — creados: {}, fusionados: {}, rechazados: {}, omitidos: {}",
+                created, merged, rejected, skipped);
+
+        } catch (Exception e) {
+            run.fail(e.getMessage());
+            log.error("El pipeline de ingesta terminó con error: {}", e.getMessage(), e);
         }
 
-        log.info("Ingesta finalizada — creados: {}, fusionados: {}, rechazados: {}, omitidos: {}",
-            created, merged, rejected, skipped);
+        return ingestionRunRepository.save(run);
+    }
+
+    // ── Consultas de historial (usadas por AdminIngestionController) ─
+
+    public PageResponse<IngestionRunResponse> getRunHistory(Pageable pageable) {
+        Page<IngestionRunResponse> page = ingestionRunRepository
+            .findAllByOrderByStartedAtDesc(pageable)
+            .map(IngestionRunResponse::from);
+        return PageResponse.of(page);
+    }
+
+    public IngestionRunResponse getRunById(UUID id) {
+        return ingestionRunRepository.findById(id)
+            .map(IngestionRunResponse::from)
+            .orElseThrow(() -> new EntityNotFoundException("Ejecución no encontrada: " + id));
     }
 
     // ── Pipeline por post ────────────────────────────────────────────

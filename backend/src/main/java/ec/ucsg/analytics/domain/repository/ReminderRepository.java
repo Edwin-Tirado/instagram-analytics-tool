@@ -13,18 +13,21 @@ import java.util.UUID;
 @Repository
 public interface ReminderRepository extends JpaRepository<Reminder, UUID> {
 
+    List<Reminder> findByUserId(UUID userId);
+
     List<Reminder> findByUserIdAndEventId(UUID userId, UUID eventId);
 
     /**
-     * Recupera los recordatorios pendientes cuya ventana de disparo
-     * ya se cumplió: event.eventDate - minutesBefore <= ahora.
-     * Usado por el scheduler de notificaciones.
+     * Recordatorios pendientes cuya ventana ya venció:
+     *   event_date - (minutes_before MINUTES) <= :now
+     *
+     * Query nativa para compatibilidad con el operador de intervalo de PostgreSQL.
      */
-    @Query("""
-        SELECT r FROM Reminder r
-        JOIN r.event e
+    @Query(value = """
+        SELECT r.* FROM reminders r
+        JOIN events e ON r.event_id = e.id
         WHERE r.sent = false
-          AND FUNCTION('timestampadd', MINUTE, -r.minutesBefore, e.eventDate) <= :now
-        """)
+          AND e.event_date - (r.minutes_before * INTERVAL '1 minute') <= :now
+        """, nativeQuery = true)
     List<Reminder> findDueReminders(@Param("now") LocalDateTime now);
 }

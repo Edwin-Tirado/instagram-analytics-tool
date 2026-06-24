@@ -1,6 +1,7 @@
 package ec.ucsg.analytics.infrastructure.scheduling;
 
 import ec.ucsg.analytics.application.service.EventIngestionService;
+import ec.ucsg.analytics.domain.model.IngestionRun;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -24,12 +25,8 @@ public class InstagramIngestionJob {
 
     @Scheduled(cron = "${app.instagram.cron-expression}")
     public void ingestInstagramPosts() {
-        log.info("=== Inicio del job de ingesta de Instagram ===");
-        try {
-            ingestionService.runIngestion();
-        } catch (Exception e) {
-            log.error("El job de ingesta terminó con error: {}", e.getMessage(), e);
-        }
+        log.info("=== Inicio del job de ingesta de Instagram (SCHEDULED) ===");
+        ingestionService.runIngestion(IngestionRun.TriggerType.SCHEDULED);
         log.info("=== Fin del job de ingesta de Instagram ===");
     }
 }
