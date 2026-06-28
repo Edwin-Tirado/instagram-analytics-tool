@@ -55,6 +55,7 @@ C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\anal
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\exception\EmailDomainNotAllowedException.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\exception\GlobalExceptionHandler.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\exception\UserAlreadyExistsException.java
+C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\rest\AdminEventController.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\rest\AdminIngestionController.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\rest\AuthController.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\rest\EventController.java

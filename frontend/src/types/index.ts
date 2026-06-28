@@ -118,3 +118,59 @@ export interface UIEvent {
 }
 
 export type ReminderMinutes = 15 | 30 | 60 | 1440
+
+// ── Admin / Supervisor ───────────────────────────────────────────────────────
+
+export interface AdminEvent {
+  id: string
+  title: string
+  caption: string | null
+  locationText: string | null
+  zone: { id: number; name: string; latitude: number | null; longitude: number | null } | null
+  eventDate: string | null
+  status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  imageUrls: string[]
+  rejectionReason: string | null
+  review: { reviewerEmail: string | null; reviewedAt: string | null } | null
+  createdAt: string
+  updatedAt: string | null
+}
+
+export interface AdminEventPage {
+  content: AdminEvent[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+  last: boolean
+}
+
+export interface UpdateEventBody {
+  title?: string
+  eventDate?: string
+  zoneId?: number
+  locationText?: string
+}
+
+export interface IngestionRun {
+  id: string
+  startedAt: string
+  endedAt: string | null
+  triggerType: 'SCHEDULED' | 'MANUAL'
+  status: 'RUNNING' | 'SUCCESS' | 'FAILED'
+  createdCount: number
+  mergedCount: number
+  rejectedCount: number
+  skippedCount: number
+  errorMessage: string | null
+  durationSeconds: number | null
+}
+
+export interface IngestionRunPage {
+  content: IngestionRun[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+  last: boolean
+}

@@ -1,12 +1,17 @@
 import {
+  AdminEvent,
+  AdminEventPage,
   AuthResponse,
   Event,
   EventSummary,
+  IngestionRun,
+  IngestionRunPage,
   LoginRequest,
   Page,
   RegisterRequest,
   ReminderRemoteResponse,
   ReminderRequest,
+  UpdateEventBody,
   Zone,
 } from '@/types'
 import { authHeader, clearTokens, setTokens } from './auth'
@@ -107,4 +112,43 @@ export async function addReminder(
 
 export async function deleteReminder(reminderId: string): Promise<void> {
   return apiFetch<void>(`/api/reminders/${reminderId}`, { method: 'DELETE' })
+}
+
+// ── Admin: gestión de eventos ────────────────────────────────────────────────
+
+export async function adminGetEvents(page = 0, size = 20, status?: string): Promise<AdminEventPage> {
+  const qs = status ? `&status=${status}` : ''
+  return apiFetch<AdminEventPage>(`/api/admin/events?page=${page}&size=${size}${qs}`)
+}
+
+export async function adminUpdateEvent(id: string, body: UpdateEventBody): Promise<AdminEvent> {
+  return apiFetch<AdminEvent>(`/api/admin/events/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  })
+}
+
+export async function adminDeleteEvent(id: string): Promise<void> {
+  return apiFetch<void>(`/api/admin/events/${id}`, { method: 'DELETE' })
+}
+
+export async function adminApproveEvent(id: string): Promise<AdminEvent> {
+  return apiFetch<AdminEvent>(`/api/admin/events/${id}/approve`, { method: 'POST' })
+}
+
+export async function adminRejectEvent(id: string, reason?: string): Promise<AdminEvent> {
+  return apiFetch<AdminEvent>(`/api/admin/events/${id}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({ reason: reason ?? null }),
+  })
+}
+
+export async function adminTriggerSync(): Promise<IngestionRun> {
+  return apiFetch<IngestionRun>('/api/admin/ingestion/run', { method: 'POST' })
+}
+
+// ── Supervisor: historial de ingesta ─────────────────────────────────────────
+
+export async function getIngestionRuns(page = 0, size = 20): Promise<IngestionRunPage> {
+  return apiFetch<IngestionRunPage>(`/api/supervisor/ingestion-runs?page=${page}&size=${size}`)
 }

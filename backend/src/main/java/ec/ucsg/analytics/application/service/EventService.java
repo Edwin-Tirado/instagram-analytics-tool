@@ -6,6 +6,7 @@ import ec.ucsg.analytics.application.dto.response.EventSummaryResponse;
 import ec.ucsg.analytics.application.dto.response.ZoneResponse;
 import ec.ucsg.analytics.application.mapper.EventMapper;
 import ec.ucsg.analytics.domain.enums.EventStatus;
+import ec.ucsg.analytics.domain.model.AppUser;
 import ec.ucsg.analytics.domain.model.Event;
 import ec.ucsg.analytics.domain.model.Zone;
 import ec.ucsg.analytics.domain.repository.EventRepository;
@@ -56,6 +57,44 @@ public class EventService {
         return zoneRepository.findAll().stream()
             .map(this::toZoneResponse)
             .toList();
+    }
+
+    // ── Endpoints del administrador (todos los eventos) ─────────────
+
+    /**
+     * Lista paginada de todos los eventos (cualquier status).
+     * Si se pasa status, filtra; si es null, devuelve todos.
+     */
+    @Transactional(readOnly = true)
+    public Page<EventResponse> getAllEventsForAdmin(EventStatus status, Pageable pageable) {
+        Page<Event> page = (status != null)
+            ? eventRepository.findByStatus(status, pageable)
+            : eventRepository.findAll(pageable);
+        return page.map(eventMapper::toResponse);
+    }
+
+    /** Aprueba un evento PENDING. */
+    @Transactional
+    public EventResponse approveEvent(UUID eventId, String adminEmail) {
+        Event event = findEvent(eventId);
+        AppUser admin = userRepository.findByEmail(adminEmail)
+            .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado: " + adminEmail));
+        event.approve(admin);
+        Event saved = eventRepository.save(event);
+        log.info("Evento '{}' aprobado por {}", saved.getTitle(), adminEmail);
+        return eventMapper.toResponse(saved);
+    }
+
+    /** Rechaza un evento PENDING con un motivo opcional. */
+    @Transactional
+    public EventResponse rejectEvent(UUID eventId, String reason, String adminEmail) {
+        Event event = findEvent(eventId);
+        AppUser admin = userRepository.findByEmail(adminEmail)
+            .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado: " + adminEmail));
+        event.reject(admin, reason);
+        Event saved = eventRepository.save(event);
+        log.info("Evento '{}' rechazado por {}", saved.getTitle(), adminEmail);
+        return eventMapper.toResponse(saved);
     }
 
     // ── Endpoints del supervisor (gestión de eventos publicados) ─────

@@ -129,6 +129,23 @@ public class AuthService {
         return buildAuthResponse(user);
     }
 
+    // ── Perfil del usuario autenticado ──────────────────────────────
+
+    @Transactional(readOnly = true)
+    public AuthResponse.UserInfo getMe(String email) {
+        AppUser user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Usuario no encontrado: " + email));
+        Set<String> roleNames = user.getRoles().stream()
+            .map(r -> r.getName().name())
+            .collect(Collectors.toSet());
+        return new AuthResponse.UserInfo(
+            user.getId().toString(),
+            user.getEmail(),
+            user.getFullName(),
+            roleNames
+        );
+    }
+
     // ── Refresh Token ────────────────────────────────────────────────
 
     @Transactional(readOnly = true)

@@ -3,6 +3,7 @@ import { AuthResponse } from '@/types'
 const ACCESS_TOKEN_KEY  = 'ucsg_access_token'
 const REFRESH_TOKEN_KEY = 'ucsg_refresh_token'
 const USER_KEY          = 'ucsg_user'
+const ROLE_COOKIE       = 'ucsg_role'
 
 // ── Persistencia de tokens ───────────────────────────────────────────────────
 
@@ -18,13 +19,22 @@ export function setTokens(
 ): void {
   localStorage.setItem(ACCESS_TOKEN_KEY,  access)
   localStorage.setItem(REFRESH_TOKEN_KEY, refresh)
-  if (user) localStorage.setItem(USER_KEY, JSON.stringify(user))
+  if (user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(user))
+    // Cookie legible por el middleware de Next.js (Edge Runtime no accede a localStorage)
+    // No es una barrera de seguridad — Spring Security verifica el JWT en cada request
+    const role = user.roles.find(r => r === 'ROLE_ADMIN')
+      ?? user.roles.find(r => r === 'ROLE_SUPERVISOR')
+      ?? 'ROLE_USER'
+    document.cookie = `${ROLE_COOKIE}=${role}; path=/; SameSite=Lax`
+  }
 }
 
 export function clearTokens(): void {
   localStorage.removeItem(ACCESS_TOKEN_KEY)
   localStorage.removeItem(REFRESH_TOKEN_KEY)
   localStorage.removeItem(USER_KEY)
+  document.cookie = `${ROLE_COOKIE}=; path=/; max-age=0`
 }
 
 // ── Estado del usuario ───────────────────────────────────────────────────────
@@ -48,7 +58,6 @@ export function hasRole(role: string): boolean {
 
 // ── Cabecera Authorization ───────────────────────────────────────────────────
 
-/** Listo para usar en fetch({ headers: authHeader() }) */
 export function authHeader(): Record<string, string> {
   const token = getAccessToken()
   return token ? { Authorization: `Bearer ${token}` } : {}

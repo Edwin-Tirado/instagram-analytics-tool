@@ -2,7 +2,9 @@ package ec.ucsg.analytics.interfaces.rest;
 
 import ec.ucsg.analytics.application.dto.request.UpdateEventRequest;
 import ec.ucsg.analytics.application.dto.response.EventResponse;
+import ec.ucsg.analytics.application.dto.response.IngestionRunResponse;
 import ec.ucsg.analytics.application.dto.response.PageResponse;
+import ec.ucsg.analytics.application.service.EventIngestionService;
 import ec.ucsg.analytics.application.service.EventService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +43,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class SupervisorController {
 
-    private final EventService eventService;
+    private final EventService        eventService;
+    private final EventIngestionService ingestionService;
 
     @GetMapping
     public ResponseEntity<PageResponse<EventResponse>> getPublishedEvents(
@@ -82,5 +85,20 @@ public class SupervisorController {
 
         eventService.deleteEvent(id, principal.getUsername());
         return ResponseEntity.noContent().build();
+    }
+
+    // ── Historial de ingesta (lectura) ───────────────────────────────
+
+    /**
+     * Historial de ejecuciones del job de Instagram — lectura solo para supervisores.
+     * El disparo manual sigue siendo exclusivo del admin (POST /api/admin/ingestion/run).
+     */
+    @GetMapping("/ingestion-runs")
+    public ResponseEntity<PageResponse<IngestionRunResponse>> getIngestionHistory(
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        PageRequest pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(ingestionService.getRunHistory(pageable));
     }
 }

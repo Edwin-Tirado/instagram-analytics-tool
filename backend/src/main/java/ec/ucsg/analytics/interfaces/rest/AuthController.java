@@ -8,6 +8,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -26,6 +29,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+
+    /**
+     * Devuelve los datos del usuario autenticado actualmente.
+     * Requiere JWT válido en Authorization: Bearer <token>.
+     * Usado por el middleware de Next.js para determinar el rol antes de renderizar.
+     */
+    @GetMapping("/me")
+    public ResponseEntity<AuthResponse.UserInfo> me(
+            @AuthenticationPrincipal UserDetails principal) {
+        return ResponseEntity.ok(authService.getMe(principal.getUsername()));
+    }
 
     /**
      * Registra un nuevo usuario.
