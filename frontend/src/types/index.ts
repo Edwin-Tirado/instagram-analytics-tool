@@ -77,11 +77,18 @@ export interface RegisterRequest {
   fullName: string
 }
 
+/** Refleja AuthResponse del backend — el objeto user está anidado */
 export interface AuthResponse {
-  accessToken: string
+  accessToken:  string
   refreshToken: string
-  email: string
-  roles: string[]
+  tokenType:    string          // siempre "Bearer"
+  expiresIn:    number          // segundos hasta que vence el access token
+  user: {
+    id:       string
+    email:    string
+    fullName: string | null
+    roles:    string[]
+  }
 }
 
 // ── UI helpers (no vienen del backend) ──────────────────────────────────────

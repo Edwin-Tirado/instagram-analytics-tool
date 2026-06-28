@@ -9,7 +9,7 @@ import {
   ReminderRequest,
   Zone,
 } from '@/types'
-import { authHeader, setTokens } from './auth'
+import { authHeader, clearTokens, setTokens } from './auth'
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'
 
@@ -45,7 +45,7 @@ export async function login(body: LoginRequest): Promise<AuthResponse> {
     method: 'POST',
     body: JSON.stringify(body),
   })
-  setTokens(data.accessToken, data.refreshToken)
+  setTokens(data.accessToken, data.refreshToken, data.user)
   return data
 }
 
@@ -54,8 +54,12 @@ export async function register(body: RegisterRequest): Promise<AuthResponse> {
     method: 'POST',
     body: JSON.stringify(body),
   })
-  setTokens(data.accessToken, data.refreshToken)
+  setTokens(data.accessToken, data.refreshToken, data.user)
   return data
+}
+
+export function logout(): void {
+  clearTokens()
 }
 
 // ── Eventos públicos ─────────────────────────────────────────────────────────
