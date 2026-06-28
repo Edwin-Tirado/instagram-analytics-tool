@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { UIEvent, ReminderMinutes } from '@/types'
+import EventMap from './EventMap'
 
 interface EventModalProps {
   event: UIEvent
@@ -100,7 +101,7 @@ export default function EventModal({ event, onClose, onToggleReminder }: EventMo
             {event.full}
           </p>
 
-          {/* Map placeholder */}
+          {/* Mapa interactivo */}
           <p className="
             text-[0.74rem] font-bold mb-[11px] text-ucsg-brown-200
             uppercase tracking-[1px]
@@ -109,21 +110,29 @@ export default function EventModal({ event, onClose, onToggleReminder }: EventMo
           </p>
           <div className="
             w-full h-[180px] rounded-[11px] border border-ucsg-border mb-[26px]
-            bg-ucsg-warm-100 flex items-center justify-center relative overflow-hidden
-            [background-image:radial-gradient(#d8cfc8_1px,transparent_1px)]
-            [background-size:22px_22px]
+            overflow-hidden
           ">
-            {/* Pin SVG */}
-            <div className="
-              w-[30px] h-[30px] bg-ucsg-crimson rounded-[50%_50%_50%_0]
-              rotate-[-45deg] shadow-[0_0_0_7px_rgba(155,14,62,0.18)]
-              relative
-            ">
+            {event.coordinates ? (
+              <EventMap
+                lat={event.coordinates.lat}
+                lng={event.coordinates.lng}
+                locationName={event.location}
+              />
+            ) : (
               <div className="
-                absolute top-2 left-2 w-[14px] h-[14px]
-                bg-white rounded-full
-              " />
-            </div>
+                w-full h-full bg-ucsg-warm-100 flex items-center justify-center
+                [background-image:radial-gradient(#d8cfc8_1px,transparent_1px)]
+                [background-size:22px_22px]
+              ">
+                <div className="
+                  w-[30px] h-[30px] bg-ucsg-crimson rounded-[50%_50%_50%_0]
+                  rotate-[-45deg] shadow-[0_0_0_7px_rgba(155,14,62,0.18)]
+                  relative
+                ">
+                  <div className="absolute top-2 left-2 w-[14px] h-[14px] bg-white rounded-full" />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Reminder buttons */}

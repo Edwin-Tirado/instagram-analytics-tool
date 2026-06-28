@@ -62,12 +62,18 @@ public class Reminder {
     @Column(name = "minutes_before", nullable = false)
     private int minutesBefore;
 
+    /** true cuando se envió el recordatorio X minutos antes del evento */
     @Column(name = "sent", nullable = false)
     @Builder.Default
     private boolean sent = false;
 
     @Column(name = "sent_at")
     private LocalDateTime sentAt;
+
+    /** true cuando se envió el email "hoy es el evento" (a las 08:00 del día del evento) */
+    @Column(name = "day_reminder_sent", nullable = false)
+    @Builder.Default
+    private boolean dayReminderSent = false;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -76,5 +82,9 @@ public class Reminder {
     public void markSent() {
         this.sent   = true;
         this.sentAt = LocalDateTime.now();
+    }
+
+    public void markDayReminderSent() {
+        this.dayReminderSent = true;
     }
 }

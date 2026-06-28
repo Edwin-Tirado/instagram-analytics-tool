@@ -14,6 +14,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.List;
 
@@ -203,6 +204,22 @@ public class GlobalExceptionHandler {
         return ResponseEntity
             .status(HttpStatus.CONFLICT)
             .body(ErrorResponse.of(409, "Invalid State Transition", ex.getMessage(), request.getRequestURI()));
+    }
+
+    // ── UUID / tipo de parámetro inválido ────────────────────────────
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(
+            MethodArgumentTypeMismatchException ex,
+            HttpServletRequest request) {
+
+        String msg = "Valor inválido para el parámetro '%s': '%s' no es un formato aceptado."
+            .formatted(ex.getName(), ex.getValue());
+        log.warn("Type mismatch en {}: {}", request.getRequestURI(), msg);
+
+        return ResponseEntity
+            .badRequest()
+            .body(ErrorResponse.of(400, "Bad Request", msg, request.getRequestURI()));
     }
 
     // ── Catch-all: errores internos no previstos ─────────────────────

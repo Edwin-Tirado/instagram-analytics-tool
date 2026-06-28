@@ -1,5 +1,6 @@
 package ec.ucsg.analytics.infrastructure.security;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,30 +23,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
-/**
- * Configuración central de Spring Security.
- *
- * Arquitectura: Stateless JWT — no se usan sesiones HTTP.
- *
- * Orden de filtros:
- *   1. RateLimitingFilter      → bloquea IPs abusivas antes de cualquier lógica
- *   2. JwtAuthenticationFilter → extrae identidad del Bearer token
- *   3. UsernamePasswordAuthenticationFilter (Spring default, no se usa en modo JWT)
- *
- * Matriz de acceso por endpoint:
- * ┌─────────────────────────────────┬──────────────────────────┐
- * │ Endpoint                        │ Acceso                   │
- * ├─────────────────────────────────┼──────────────────────────┤
- * │ POST /api/auth/**               │ Público                  │
- * │ GET  /api/public/**             │ Público                  │
- * │ GET  /api/events/map            │ Público                  │
- * │ PUT  /api/events/{id}/approve      │ SUPERVISOR, ADMIN        │
- * │ PUT  /api/events/{id}/reject       │ SUPERVISOR, ADMIN        │
- * │ GET  /api/supervisor/**         │ SUPERVISOR, ADMIN        │
- * │ /**  /api/admin/**              │ ADMIN                    │
- * │ Cualquier otro                  │ Autenticado              │
- * └─────────────────────────────────┴──────────────────────────┘
- */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
@@ -68,7 +45,6 @@ public class SecurityConfig {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
         provider.setUserDetailsService(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
-        // Oculta UsernameNotFoundException — no revela si el email existe
         provider.setHideUserNotFoundExceptions(true);
         return provider;
     }
@@ -79,51 +55,50 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
+
     // ── Cadena de filtros principal ─────────────────────────────────
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-            // Sin estado — JWT en Authorization header
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-            // CSRF innecesario con JWT stateless
             .csrf(AbstractHttpConfigurer::disable)
-
-            // CORS — orígenes configurados en CorsConfigurationSource
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-            // Reglas de autorización por ruta
+            // Sin sesión válida → 401 JSON inline (evita referencias a @Bean externo)
+            .exceptionHandling(ex -> ex.authenticationEntryPoint(
+                (request, response, authException) -> {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write(
+                        "{\"status\":401,\"error\":\"Unauthorized\"," +
+                        "\"message\":\"Debes iniciar sesión para realizar esta acción.\"," +
+                        "\"path\":\"" + request.getRequestURI() + "\"}"
+                    );
+                }
+            ))
+
             .authorizeHttpRequests(auth -> auth
+                // Diagnóstico — solo dev, eliminar en prod
+                .requestMatchers(HttpMethod.GET, "/api/test/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/reminders/ping").permitAll()
 
-                // Registro, login y refresh — públicos (el refresh valida el token internamente)
-                .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll()
+                .requestMatchers(HttpMethod.POST,
+                    "/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll()
 
-                // Mapa y listado de eventos aprobados — públicos (consumidos por el mapa)
                 .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/events/map").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/events", "/api/events/**").permitAll()
 
-                // Actuator — solo localhost (se refina con IpAddressRequestMatcher en prod)
                 .requestMatchers("/actuator/**").hasRole("ADMIN")
-
-                // Gestión completa del sistema
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
-
-                // Gestión de eventos publicados (editar y eliminar)
                 .requestMatchers("/api/supervisor/**").hasAnyRole("SUPERVISOR", "ADMIN")
 
-                // Todo lo demás requiere autenticación
                 .anyRequest().authenticated()
             )
 
-            // Proveedor de autenticación personalizado
             .authenticationProvider(authenticationProvider())
-
-            // JWT valida identidad antes del filtro de usuario/contraseña
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-
-            // Rate Limiting se ejecuta antes del filtro JWT
             .addFilterBefore(rateLimitingFilter, JwtAuthenticationFilter.class);
 
         return http.build();
@@ -134,10 +109,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-
-        // En producción, reemplazar por el dominio del frontend desplegado
         config.setAllowedOrigins(List.of(
-            "http://localhost:3000",   // Next.js dev
+            "http://localhost:3000",
             "http://localhost:3001"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));

@@ -16,7 +16,7 @@ export function toUIEvent(ev: EventSummary, reminded: boolean): UIEvent {
     : 'Fecha por confirmar'
 
   // El "tag" de categoría se deriva del nombre de la zona o del texto de ubicación
-  const tag = ev.zone?.name ?? ev.locationText ?? 'Universidad'
+  const tag = ev.zone?.name ?? ev.zoneName ?? ev.locationText ?? 'Universidad'
 
   // El resumen del caption: primera 150 caracteres sin el bloque de hashtags
   const cleaned = (ev.caption ?? ev.title)
@@ -24,6 +24,10 @@ export function toUIEvent(ev: EventSummary, reminded: boolean): UIEvent {
     .replace(/\n{2,}/g, '\n')
     .trim()
   const short = cleaned.length > 160 ? cleaned.slice(0, 157) + '…' : cleaned
+
+  const lat = ev.zone?.latitude ?? ev.latitude
+  const lng = ev.zone?.longitude ?? ev.longitude
+  const coordinates = lat != null && lng != null ? { lat, lng } : undefined
 
   return {
     id:        ev.id,
@@ -33,11 +37,12 @@ export function toUIEvent(ev: EventSummary, reminded: boolean): UIEvent {
     day,
     time,
     fullDate,
-    location:  ev.locationText ?? ev.zone?.name ?? 'Campus UCSG',
+    location:  ev.locationText ?? ev.zone?.name ?? ev.zoneName ?? 'Campus UCSG',
     short,
     full:      cleaned,
-    imageUrl:  ev.images?.[0]?.mediaUrl ?? null,
+    imageUrl:  ev.images?.[0]?.mediaUrl ?? ev.thumbnailUrl ?? null,
     eventDate: date,
     reminded,
+    coordinates,
   }
 }

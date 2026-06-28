@@ -28,6 +28,15 @@ async function apiFetch<T>(
     ...init,
   })
 
+  // Token expirado o inválido → limpiar sesión y redirigir al login
+  if (res.status === 401) {
+    clearTokens()
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login'
+    }
+    throw new Error('Sesión expirada. Inicia sesión de nuevo.')
+  }
+
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
     throw new Error(body?.message ?? `HTTP ${res.status}`)

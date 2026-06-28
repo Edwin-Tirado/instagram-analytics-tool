@@ -3,6 +3,7 @@ package ec.ucsg.analytics.application.service;
 import ec.ucsg.analytics.application.dto.request.ReminderRequest;
 import ec.ucsg.analytics.application.dto.response.ReminderResponse;
 import ec.ucsg.analytics.domain.enums.EventStatus;
+import ec.ucsg.analytics.infrastructure.mail.EmailNotificationService;
 import ec.ucsg.analytics.domain.model.AppUser;
 import ec.ucsg.analytics.domain.model.Event;
 import ec.ucsg.analytics.domain.model.Reminder;
@@ -25,9 +26,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ReminderService {
 
-    private final ReminderRepository reminderRepository;
-    private final EventRepository    eventRepository;
-    private final UserRepository     userRepository;
+    private final ReminderRepository       reminderRepository;
+    private final EventRepository          eventRepository;
+    private final UserRepository           userRepository;
+    private final EmailNotificationService emailService;
 
     // ── Crear recordatorio ───────────────────────────────────────────
 
@@ -46,6 +48,10 @@ public class ReminderService {
             Reminder saved = reminderRepository.save(reminder);
             log.info("Recordatorio creado: evento='{}', usuario={}, minutos={}",
                 event.getTitle(), userEmail, request.minutesBefore());
+
+            // Email de confirmación inmediato
+            emailService.sendReminderConfirmation(user, event, saved);
+
             return toResponse(saved);
 
         } catch (DataIntegrityViolationException e) {

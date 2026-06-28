@@ -7,7 +7,7 @@ import { EventSummary } from '@/types'
 
 export const MOCK_EVENTS: EventSummary[] = [
   {
-    id: 'med',
+    id: '11111111-1111-1111-1111-111111111111',
     title: 'Casa Abierta de Medicina y Ciencias de la Salud',
     caption: 'Simulaciones médicas, chequeos gratuitos y exposición de proyectos anatómicos por parte de los estudiantes de internado. Ven y conoce de cerca el trabajo de nuestros estudiantes. Habrá simulaciones médicas, toma de signos vitales gratuita y charlas sobre prevención.',
     locationText: 'Plazoleta Central',
@@ -18,7 +18,7 @@ export const MOCK_EVENTS: EventSummary[] = [
     createdAt: '2026-07-01T00:00:00',
   },
   {
-    id: 'sinf',
+    id: '22222222-2222-2222-2222-222222222222',
     title: 'Concierto Sinfónico y Coro UCSG',
     caption: 'Nuestra orquesta sinfónica universitaria rinde homenaje a la música ecuatoriana. Entrada gratuita para estudiantes y personal administrativo presentando su credencial.',
     locationText: 'Aula Magna',
@@ -29,7 +29,7 @@ export const MOCK_EVENTS: EventSummary[] = [
     createdAt: '2026-07-02T00:00:00',
   },
   {
-    id: 'futbol',
+    id: '33333333-3333-3333-3333-333333333333',
     title: 'Copa Interfacultades de Fútbol',
     caption: 'Arranca la temporada deportiva con la gran final entre las facultades. Habrá animación, hinchada organizada y premiación al final del encuentro. Acompaña a tu facultad y vive la pasión del fútbol universitario.',
     locationText: 'Cancha de Césped Sintético',
@@ -40,7 +40,7 @@ export const MOCK_EVENTS: EventSummary[] = [
     createdAt: '2026-07-03T00:00:00',
   },
   {
-    id: 'ia',
+    id: '44444444-4444-4444-4444-444444444444',
     title: 'Congreso de Ingeniería e Inteligencia Artificial',
     caption: 'Una jornada completa con ponencias de expertos nacionales e internacionales sobre inteligencia artificial aplicada, ciberseguridad y desarrollo de software. Incluye talleres prácticos y feria de proyectos estudiantiles.',
     locationText: 'Auditorio Leonidas Ortega',

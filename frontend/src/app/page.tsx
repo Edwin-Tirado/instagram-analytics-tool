@@ -1,17 +1,23 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
+import { useRouter } from 'next/navigation'
 import CategoryFilter from '@/components/CategoryFilter'
 import EventCard from '@/components/EventCard'
-import EventModal from '@/components/EventModal'
 import Footer from '@/components/Footer'
 import HeroCarousel from '@/components/HeroCarousel'
 import Navbar from '@/components/Navbar'
 import Toast from '@/components/Toast'
 import { getEvents, addReminder, deleteReminder, getMyReminders } from '@/lib/api'
+import { isAuthenticated } from '@/lib/auth'
 import { toUIEvent } from '@/lib/eventUtils'
 import { MOCK_EVENTS, HERO_SLIDES, FOOTER_COLS, CATEGORIES } from '@/lib/mockData'
 import { EventSummary, ReminderMinutes, UIEvent } from '@/types'
+
+// EventModal se carga dinámicamente para evitar que Leaflet (que usa window)
+// intente ejecutarse durante SSR y lance "Element type is invalid: got undefined"
+const EventModal = dynamic(() => import('@/components/EventModal'), { ssr: false })
 
 // ── Constantes de categoría ──────────────────────────────────────────────────
 
@@ -32,6 +38,7 @@ function deriveGroup(tag: string): string {
 // ── Page component ───────────────────────────────────────────────────────────
 
 export default function HomePage() {
+  const router = useRouter()
   const [rawEvents, setRawEvents]       = useState<EventSummary[]>(MOCK_EVENTS)
   const [loading, setLoading]           = useState(false)
   const [activeCategory, setActiveCategory] = useState('Todos')
@@ -87,6 +94,13 @@ export default function HomePage() {
   const handleToggleReminder = useCallback(
     async (minutes: ReminderMinutes) => {
       if (!selectedId) return
+
+      // Guard: redirigir al login si el usuario no tiene sesión activa
+      if (!isAuthenticated()) {
+        router.push('/login')
+        return
+      }
+
       const isActive = reminders.has(selectedId)
 
       if (isActive) {

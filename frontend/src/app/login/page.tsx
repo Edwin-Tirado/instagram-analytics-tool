@@ -117,7 +117,7 @@ export default function LoginPage() {
               Iniciar sesión
             </h2>
             <p className="text-ucsg-brown-400 text-[0.95rem]">
-              Acceso exclusivo para la comunidad UCSG.
+              Ingresa con tu cuenta institucional.
             </p>
           </div>
 
@@ -152,7 +152,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="marcelo.acuna@cu.ucsg.edu.ec"
+                placeholder="correo@cu.ucsg.edu.ec"
                 disabled={loading}
                 className="
                   w-full px-4 py-[13px] rounded-xl
@@ -235,8 +235,17 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Enlace de retorno */}
+          {/* Enlaces inferiores */}
           <p className="mt-8 text-center text-[0.88rem] text-ucsg-brown-400">
+            ¿No tienes cuenta?{' '}
+            <Link
+              href="/register"
+              className="text-ucsg-crimson font-semibold hover:underline"
+            >
+              Crear cuenta →
+            </Link>
+          </p>
+          <p className="mt-3 text-center text-[0.88rem] text-ucsg-brown-400">
             ¿Solo quieres explorar?{' '}
             <Link
               href="/"

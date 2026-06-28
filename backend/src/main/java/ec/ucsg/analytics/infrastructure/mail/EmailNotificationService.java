@@ -16,16 +16,6 @@ import org.springframework.stereotype.Service;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
-/**
- * Servicio de notificaciones por correo electrónico.
- *
- * Configurado para Mailtrap (sandbox SMTP) en desarrollo.
- * Cambiar las variables de entorno MAILTRAP_* en producción por
- * las credenciales del servidor SMTP real de UCSG.
- *
- * Todos los envíos son {@code @Async} para no bloquear el hilo
- * del scheduler o del request HTTP.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -33,6 +23,9 @@ public class EmailNotificationService {
 
     private static final DateTimeFormatter DATE_FORMAT =
         DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM 'de' yyyy 'a las' HH:mm", new Locale("es", "EC"));
+
+    private static final DateTimeFormatter TIME_FORMAT =
+        DateTimeFormatter.ofPattern("HH:mm");
 
     private final JavaMailSender mailSender;
 
@@ -42,12 +35,27 @@ public class EmailNotificationService {
     @Value("${app.mail.from-name}")
     private String fromName;
 
-    // ── Recordatorio de evento ───────────────────────────────────────
+    // ── 1. Confirmación inmediata al guardar el recordatorio ─────────────────
 
-    /**
-     * Envía un recordatorio al usuario antes de que inicie el evento.
-     * Disparado por el scheduler de recordatorios (ReminderJob — Sprint 3).
-     */
+    @Async
+    public void sendReminderConfirmation(AppUser user, Event event, Reminder reminder) {
+        String label   = formatMinutes(reminder.getMinutesBefore());
+        String subject = "✅ Recordatorio guardado: " + event.getTitle();
+        String body    = buildConfirmationHtml(user, event, label);
+        send(user.getEmail(), subject, body);
+    }
+
+    // ── 2. Email del día del evento (a las 08:00) ────────────────────────────
+
+    @Async
+    public void sendDayReminderEmail(AppUser user, Event event) {
+        String subject = "📅 Hoy es el día: " + event.getTitle();
+        String body    = buildDayReminderHtml(user, event);
+        send(user.getEmail(), subject, body);
+    }
+
+    // ── 3. Recordatorio X minutos antes del evento ───────────────────────────
+
     @Async
     public void sendReminderEmail(AppUser user, Event event, Reminder reminder) {
         String subject = "⏰ Recordatorio: " + event.getTitle();
@@ -55,36 +63,19 @@ public class EmailNotificationService {
         send(user.getEmail(), subject, body);
     }
 
-    // ── Notificación de aprobación ───────────────────────────────────
-
-    /**
-     * Notifica a todos los usuarios con recordatorios activos que el evento
-     * fue aprobado y está disponible en el mapa.
-     * Disparado por {@code EventService.approveEvent()}.
-     */
-    @Async
-    public void sendApprovalNotification(AppUser user, Event event) {
-        String subject = "✅ Evento aprobado: " + event.getTitle();
-        String body    = buildApprovalHtml(user, event);
-        send(user.getEmail(), subject, body);
-    }
-
-    // ── Core de envío ────────────────────────────────────────────────
+    // ── Core de envío ────────────────────────────────────────────────────────
 
     @Async
     public void send(String to, String subject, String htmlBody) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
             helper.setFrom(fromAddress, fromName);
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlBody, true);
-
             mailSender.send(message);
             log.info("Correo enviado a {}: {}", to, subject);
-
         } catch (MessagingException e) {
             log.error("Error enviando correo a {}: {}", to, e.getMessage());
         } catch (Exception e) {
@@ -92,85 +83,124 @@ public class EmailNotificationService {
         }
     }
 
-    // ── Templates HTML ───────────────────────────────────────────────
+    // ── Templates HTML ────────────────────────────────────────────────────────
+
+    private String buildConfirmationHtml(AppUser user, Event event, String label) {
+        String dateStr = event.getEventDate() != null
+            ? event.getEventDate().format(DATE_FORMAT) : "Fecha por confirmar";
+        String zone = event.getZone() != null ? event.getZone().getName() : "Campus UCSG";
+        String name = user.getFullName() != null ? user.getFullName() : user.getEmail();
+        int year = java.time.Year.now().getValue();
+
+        return """
+            <!DOCTYPE html>
+            <html lang="es">
+            <head><meta charset="UTF-8"></head>
+            <body style="font-family:Arial,sans-serif;background:#f5f0eb;padding:20px;margin:0;">
+              <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+                <div style="background:#931934;color:#fff;padding:28px 32px;">
+                  <p style="margin:0 0 4px;font-size:13px;opacity:.8;letter-spacing:2px;text-transform:uppercase;">UCSG Eventos</p>
+                  <h1 style="margin:0;font-size:22px;font-weight:700;">Recordatorio guardado</h1>
+                </div>
+                <div style="padding:32px;">
+                  <p style="color:#4a3728;margin:0 0 8px;">Hola, <strong>%s</strong></p>
+                  <p style="color:#6b5344;margin:0 0 24px;">Tu recordatorio fue registrado exitosamente. Te avisaremos <strong>%s</strong> antes del evento.</p>
+                  <div style="background:#fdf6f0;border-left:4px solid #931934;padding:18px 20px;border-radius:6px;margin-bottom:24px;">
+                    <h2 style="margin:0 0 10px;color:#931934;font-size:17px;">%s</h2>
+                    <p style="margin:4px 0;color:#4a3728;">📅 <strong>%s</strong></p>
+                    <p style="margin:4px 0;color:#4a3728;">📍 <strong>%s</strong></p>
+                  </div>
+                  <p style="color:#9e8070;font-size:13px;margin:0;">Recibirás dos notificaciones más: una el día del evento a las 08:00 y otra justo antes de que inicie.</p>
+                </div>
+                <div style="background:#fdf6f0;padding:16px 32px;text-align:center;color:#b89f90;font-size:12px;">
+                  © %d Universidad Católica de Santiago de Guayaquil
+                </div>
+              </div>
+            </body>
+            </html>
+            """.formatted(name, label, event.getTitle(), dateStr, zone, year);
+    }
+
+    private String buildDayReminderHtml(AppUser user, Event event) {
+        String timeStr = event.getEventDate() != null
+            ? event.getEventDate().format(TIME_FORMAT) : "—";
+        String zone = event.getZone() != null ? event.getZone().getName() : "Campus UCSG";
+        String name = user.getFullName() != null ? user.getFullName() : user.getEmail();
+        int year = java.time.Year.now().getValue();
+
+        return """
+            <!DOCTYPE html>
+            <html lang="es">
+            <head><meta charset="UTF-8"></head>
+            <body style="font-family:Arial,sans-serif;background:#f5f0eb;padding:20px;margin:0;">
+              <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+                <div style="background:#931934;color:#fff;padding:28px 32px;">
+                  <p style="margin:0 0 4px;font-size:13px;opacity:.8;letter-spacing:2px;text-transform:uppercase;">UCSG Eventos</p>
+                  <h1 style="margin:0;font-size:22px;font-weight:700;">¡Hoy es el día! 📅</h1>
+                </div>
+                <div style="padding:32px;">
+                  <p style="color:#4a3728;margin:0 0 8px;">Hola, <strong>%s</strong></p>
+                  <p style="color:#6b5344;margin:0 0 24px;">El evento que marcaste comienza <strong>hoy</strong>. No te lo pierdas.</p>
+                  <div style="background:#fdf6f0;border-left:4px solid #931934;padding:18px 20px;border-radius:6px;margin-bottom:24px;">
+                    <h2 style="margin:0 0 10px;color:#931934;font-size:17px;">%s</h2>
+                    <p style="margin:4px 0;color:#4a3728;">🕐 <strong>Hora de inicio: %s</strong></p>
+                    <p style="margin:4px 0;color:#4a3728;">📍 <strong>%s</strong></p>
+                  </div>
+                  <p style="color:#9e8070;font-size:13px;margin:0;">Recibirás un último recordatorio minutos antes de que inicie el evento.</p>
+                </div>
+                <div style="background:#fdf6f0;padding:16px 32px;text-align:center;color:#b89f90;font-size:12px;">
+                  © %d Universidad Católica de Santiago de Guayaquil
+                </div>
+              </div>
+            </body>
+            </html>
+            """.formatted(name, event.getTitle(), timeStr, zone, year);
+    }
 
     private String buildReminderHtml(AppUser user, Event event, Reminder reminder) {
         String dateStr = event.getEventDate() != null
-            ? event.getEventDate().format(DATE_FORMAT)
-            : "Fecha por confirmar";
-
+            ? event.getEventDate().format(DATE_FORMAT) : "Fecha por confirmar";
         String zone = event.getZone() != null ? event.getZone().getName() : "Campus UCSG";
+        String name = user.getFullName() != null ? user.getFullName() : user.getEmail();
+        String label = formatMinutes(reminder.getMinutesBefore());
+        int year = java.time.Year.now().getValue();
 
         return """
             <!DOCTYPE html>
             <html lang="es">
             <head><meta charset="UTF-8"></head>
-            <body style="font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;">
-              <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;">
-                <div style="background:#003087;color:#fff;padding:24px 32px;">
-                  <h1 style="margin:0;font-size:22px;">UCSG Campus Analytics</h1>
-                  <p style="margin:4px 0 0;opacity:.85;">Sistema de Eventos Universitarios</p>
+            <body style="font-family:Arial,sans-serif;background:#f5f0eb;padding:20px;margin:0;">
+              <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+                <div style="background:#931934;color:#fff;padding:28px 32px;">
+                  <p style="margin:0 0 4px;font-size:13px;opacity:.8;letter-spacing:2px;text-transform:uppercase;">UCSG Eventos</p>
+                  <h1 style="margin:0;font-size:22px;font-weight:700;">⏰ ¡El evento está por comenzar!</h1>
                 </div>
                 <div style="padding:32px;">
-                  <p style="color:#555;">Hola, <strong>%s</strong></p>
-                  <p>Te recordamos que el siguiente evento comienza en <strong>%d minutos</strong>:</p>
-                  <div style="background:#f0f4ff;border-left:4px solid #003087;padding:16px;border-radius:4px;margin:16px 0;">
-                    <h2 style="margin:0 0 8px;color:#003087;">%s</h2>
-                    <p style="margin:4px 0;">📅 <strong>%s</strong></p>
-                    <p style="margin:4px 0;">📍 <strong>%s</strong></p>
+                  <p style="color:#4a3728;margin:0 0 8px;">Hola, <strong>%s</strong></p>
+                  <p style="color:#6b5344;margin:0 0 24px;">Faltan <strong>%s</strong> para que inicie el evento.</p>
+                  <div style="background:#fdf6f0;border-left:4px solid #931934;padding:18px 20px;border-radius:6px;margin-bottom:24px;">
+                    <h2 style="margin:0 0 10px;color:#931934;font-size:17px;">%s</h2>
+                    <p style="margin:4px 0;color:#4a3728;">📅 <strong>%s</strong></p>
+                    <p style="margin:4px 0;color:#4a3728;">📍 <strong>%s</strong></p>
                   </div>
-                  <p style="color:#888;font-size:13px;">Este recordatorio fue configurado por ti desde el mapa de eventos.</p>
+                  <p style="color:#9e8070;font-size:13px;margin:0;">Este fue el último recordatorio configurado para este evento.</p>
                 </div>
-                <div style="background:#f9f9f9;padding:16px 32px;text-align:center;color:#aaa;font-size:12px;">
+                <div style="background:#fdf6f0;padding:16px 32px;text-align:center;color:#b89f90;font-size:12px;">
                   © %d Universidad Católica de Santiago de Guayaquil
                 </div>
               </div>
             </body>
             </html>
-            """.formatted(
-                user.getFullName() != null ? user.getFullName() : user.getEmail(),
-                reminder.getMinutesBefore(),
-                event.getTitle(),
-                dateStr,
-                zone,
-                java.time.Year.now().getValue()
-            );
+            """.formatted(name, label, event.getTitle(), dateStr, zone, year);
     }
 
-    private String buildApprovalHtml(AppUser user, Event event) {
-        String dateStr = event.getEventDate() != null
-            ? event.getEventDate().format(DATE_FORMAT)
-            : "Fecha por confirmar";
+    // ── Util ──────────────────────────────────────────────────────────────────
 
-        return """
-            <!DOCTYPE html>
-            <html lang="es">
-            <head><meta charset="UTF-8"></head>
-            <body style="font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;">
-              <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;">
-                <div style="background:#003087;color:#fff;padding:24px 32px;">
-                  <h1 style="margin:0;font-size:22px;">UCSG Campus Analytics</h1>
-                </div>
-                <div style="padding:32px;">
-                  <p>Hola, <strong>%s</strong></p>
-                  <p>Un evento que podrías interesarte ya está disponible en el mapa:</p>
-                  <div style="background:#f0fff4;border-left:4px solid #28a745;padding:16px;border-radius:4px;margin:16px 0;">
-                    <h2 style="margin:0 0 8px;color:#155724;">%s</h2>
-                    <p style="margin:4px 0;">📅 <strong>%s</strong></p>
-                  </div>
-                  <p>Consulta el mapa del campus para ver la ubicación exacta y configurar un recordatorio.</p>
-                </div>
-                <div style="background:#f9f9f9;padding:16px 32px;text-align:center;color:#aaa;font-size:12px;">
-                  © %d Universidad Católica de Santiago de Guayaquil
-                </div>
-              </div>
-            </body>
-            </html>
-            """.formatted(
-                user.getFullName() != null ? user.getFullName() : user.getEmail(),
-                event.getTitle(),
-                dateStr,
-                java.time.Year.now().getValue()
-            );
+    private String formatMinutes(int minutes) {
+        if (minutes < 60)   return minutes + " minutos";
+        if (minutes == 60)  return "1 hora";
+        if (minutes < 1440) return (minutes / 60) + " horas";
+        if (minutes == 1440) return "1 día";
+        return (minutes / 1440) + " días";
     }
 }

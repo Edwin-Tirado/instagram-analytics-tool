@@ -30,6 +30,12 @@ public class ReminderController {
 
     private final ReminderService reminderService;
 
+    /** Endpoint público de diagnóstico — eliminar en producción */
+    @GetMapping("/ping")
+    public ResponseEntity<String> ping() {
+        return ResponseEntity.ok("ReminderController activo");
+    }
+
     @GetMapping
     public ResponseEntity<List<ReminderResponse>> getMyReminders(
             @AuthenticationPrincipal UserDetails principal) {

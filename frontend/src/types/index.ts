@@ -22,10 +22,16 @@ export interface EventSummary {
   title: string
   caption: string | null
   locationText: string | null
-  zone: Zone | null
+  // Forma anidada (mock data)
+  zone?: Zone | null
+  // Forma plana (respuesta real del backend)
+  zoneName?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  thumbnailUrl?: string | null
   eventDate: string | null      // ISO-8601 desde Spring
   status: EventStatus
-  images: EventImage[]
+  images?: EventImage[]
   createdAt: string
 }
 
@@ -108,6 +114,7 @@ export interface UIEvent {
   imageUrl: string | null
   eventDate: Date | null
   reminded: boolean
+  coordinates?: { lat: number; lng: number }
 }
 
 export type ReminderMinutes = 15 | 30 | 60 | 1440
