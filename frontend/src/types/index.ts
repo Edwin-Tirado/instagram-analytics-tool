@@ -174,3 +174,21 @@ export interface IngestionRunPage {
   totalPages: number
   last: boolean
 }
+
+export interface AdminUser {
+  id: string
+  email: string
+  fullName: string
+  enabled: boolean
+  locked: boolean
+  failedLoginAttempts: number
+  createdAt: string
+  roles: string[]
+}
+
+export interface AdminUserPage {
+  content: AdminUser[]
+  totalElements: number
+  totalPages: number
+  last: boolean
+}

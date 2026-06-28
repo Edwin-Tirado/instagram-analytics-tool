@@ -65,11 +65,37 @@ export default function Navbar() {
         {user ? (
           /* Usuario autenticado */
           <div className="flex items-center gap-3">
-            <span className="
-              text-white/80 text-[0.78rem] font-medium hidden sm:block
-            ">
+            <span className="text-white/80 text-[0.78rem] font-medium hidden sm:block">
               Hola, <strong className="text-white">{displayName}</strong>
             </span>
+            {user.roles?.includes('ROLE_ADMIN') && (
+              <Link
+                href="/admin/dashboard"
+                className="
+                  bg-white/15 text-white border border-white/30
+                  px-4 py-[7px] rounded-[22px]
+                  text-[0.72rem] font-bold uppercase tracking-[0.8px]
+                  no-underline whitespace-nowrap
+                  hover:bg-white/25 transition-colors
+                "
+              >
+                Panel Admin
+              </Link>
+            )}
+            {user.roles?.includes('ROLE_SUPERVISOR') && !user.roles?.includes('ROLE_ADMIN') && (
+              <Link
+                href="/supervisor/logs"
+                className="
+                  bg-white/15 text-white border border-white/30
+                  px-4 py-[7px] rounded-[22px]
+                  text-[0.72rem] font-bold uppercase tracking-[0.8px]
+                  no-underline whitespace-nowrap
+                  hover:bg-white/25 transition-colors
+                "
+              >
+                Panel Supervisor
+              </Link>
+            )}
             <button
               onClick={handleLogout}
               className="

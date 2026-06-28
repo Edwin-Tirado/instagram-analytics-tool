@@ -36,6 +36,7 @@ C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\anal
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\domain\repository\RoleRepository.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\domain\repository\UserRepository.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\domain\repository\ZoneRepository.java
+C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\infrastructure\config\DataInitializer.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\infrastructure\instagram\CaptionParser.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\infrastructure\instagram\dto\InstagramChildrenResponse.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\infrastructure\instagram\dto\InstagramMediaItem.java
@@ -57,6 +58,7 @@ C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\anal
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\exception\UserAlreadyExistsException.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\rest\AdminEventController.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\rest\AdminIngestionController.java
+C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\rest\AdminUserController.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\rest\AuthController.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\rest\EventController.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\rest\MailTestController.java

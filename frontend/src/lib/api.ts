@@ -1,6 +1,8 @@
 import {
   AdminEvent,
   AdminEventPage,
+  AdminUser,
+  AdminUserPage,
   AuthResponse,
   Event,
   EventSummary,
@@ -151,4 +153,25 @@ export async function adminTriggerSync(): Promise<IngestionRun> {
 
 export async function getIngestionRuns(page = 0, size = 20): Promise<IngestionRunPage> {
   return apiFetch<IngestionRunPage>(`/api/supervisor/ingestion-runs?page=${page}&size=${size}`)
+}
+
+// ── Admin: gestión de usuarios ────────────────────────────────────────────────
+
+export async function adminGetUsers(page = 0, size = 20): Promise<AdminUserPage> {
+  return apiFetch<AdminUserPage>(`/api/admin/users?page=${page}&size=${size}&sort=createdAt,desc`)
+}
+
+export async function adminToggleLock(id: string): Promise<AdminUser> {
+  return apiFetch<AdminUser>(`/api/admin/users/${id}/toggle-lock`, { method: 'PATCH' })
+}
+
+export async function adminToggleEnabled(id: string): Promise<AdminUser> {
+  return apiFetch<AdminUser>(`/api/admin/users/${id}/toggle-enabled`, { method: 'PATCH' })
+}
+
+export async function adminChangeRole(id: string, role: string): Promise<AdminUser> {
+  return apiFetch<AdminUser>(`/api/admin/users/${id}/role`, {
+    method: 'PATCH',
+    body: JSON.stringify({ role }),
+  })
 }

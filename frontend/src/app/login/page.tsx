@@ -4,6 +4,7 @@ import { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { login } from '@/lib/api'
+import { getStoredUser } from '@/lib/auth'
 
 // ── Mapeo de mensajes de error del backend ────────────────────────────────────
 
@@ -38,7 +39,14 @@ export default function LoginPage() {
 
     try {
       await login({ email: email.trim(), password })
-      router.push('/')
+      const user = getStoredUser()
+      if (user?.roles.includes('ROLE_ADMIN')) {
+        router.push('/admin/dashboard')
+      } else if (user?.roles.includes('ROLE_SUPERVISOR')) {
+        router.push('/supervisor/logs')
+      } else {
+        router.push('/')
+      }
     } catch (err) {
       const raw = err instanceof Error ? err.message : String(err)
       setError(friendlyError(raw))

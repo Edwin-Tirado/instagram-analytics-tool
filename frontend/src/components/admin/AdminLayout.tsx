@@ -1,7 +1,9 @@
 'use client'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { clearTokens, getStoredUser } from '@/lib/auth'
+import { AuthResponse } from '@/types'
 
 interface Props { children: React.ReactNode }
 
@@ -17,8 +19,11 @@ const NAV_SUPERVISOR = [
 export default function AdminLayout({ children }: Props) {
   const pathname = usePathname()
   const router   = useRouter()
-  const user     = getStoredUser()
-  const isAdmin  = user?.roles.includes('ROLE_ADMIN') ?? false
+  const [user, setUser] = useState<AuthResponse['user'] | null>(null)
+
+  useEffect(() => { setUser(getStoredUser()) }, [])
+
+  const isAdmin = user?.roles.includes('ROLE_ADMIN') ?? false
 
   function handleLogout() {
     clearTokens()
