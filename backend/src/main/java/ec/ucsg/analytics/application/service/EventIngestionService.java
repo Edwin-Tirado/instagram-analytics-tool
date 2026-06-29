@@ -171,14 +171,14 @@ public class EventIngestionService {
             }
         }
 
-        // 7. Crear nuevo evento APROBADO (publicación automática)
+        // 7. Crear nuevo evento en estado PENDING — requiere aprobación del admin
         Event newEvent = Event.builder()
             .title(title)
             .caption(caption)
             .locationText(zone.map(Zone::getName).orElse(null))
             .zone(zone.orElse(null))
             .eventDate(eventDate)
-            .status(EventStatus.APPROVED)
+            .status(EventStatus.PENDING)
             .instagramPostId(post.getId())
             .build();
 

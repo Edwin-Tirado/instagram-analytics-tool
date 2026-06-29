@@ -80,10 +80,15 @@ export default function AdminLayout({ children }: Props) {
       {/* Contenido */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="bg-white border-b border-[#e8ddd4] px-8 py-4 flex items-center justify-between">
-          <div />
           <Link href="/" className="text-sm text-[#7a6652] hover:text-[#931934] transition-colors">
             ← Volver al sitio
           </Link>
+          <div className="flex items-center gap-2 text-sm text-[#7a6652]">
+            <span className="w-7 h-7 rounded-full bg-[#931934] text-white flex items-center justify-center text-xs font-bold">
+              {user?.fullName?.[0] ?? user?.email?.[0] ?? '?'}
+            </span>
+            <span className="hidden sm:block">{user?.fullName ?? user?.email}</span>
+          </div>
         </header>
         <main className="flex-1 p-8 overflow-auto">
           {children}

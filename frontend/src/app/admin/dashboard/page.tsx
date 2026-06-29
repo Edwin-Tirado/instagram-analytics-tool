@@ -2,9 +2,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import AdminLayout from '@/components/admin/AdminLayout'
+import DataTable from '@/components/admin/DataTable'
 import {
   adminApproveEvent, adminDeleteEvent, adminGetEvents,
-  adminRejectEvent, adminTriggerSync,
+  adminRejectEvent, adminTriggerSync, adminUpdateEvent,
   adminGetUsers, adminToggleLock, adminToggleEnabled, adminChangeRole,
 } from '@/lib/api'
 import { AdminEvent, AdminUser } from '@/types'
@@ -46,6 +47,8 @@ function EventsTab() {
   const [confirmDelete, setConfirmDelete] = useState<AdminEvent | null>(null)
   const [rejectTarget, setRejectTarget]   = useState<AdminEvent | null>(null)
   const [rejectReason, setRejectReason]   = useState('')
+  const [editTarget, setEditTarget]       = useState<AdminEvent | null>(null)
+  const [editForm, setEditForm]           = useState({ title: '', eventDate: '', locationText: '' })
 
   const PAGE_SIZE = 20
 
@@ -74,6 +77,28 @@ function EventsTab() {
       setEvents(prev => prev.map(e => e.id === updated.id ? updated : e))
     } catch (e: any) { setError(e.message) }
     finally { setRejectTarget(null); setRejectReason('') }
+  }
+
+  function openEdit(ev: AdminEvent) {
+    setEditTarget(ev)
+    setEditForm({
+      title:        ev.title,
+      eventDate:    ev.eventDate ? ev.eventDate.slice(0, 16) : '',
+      locationText: ev.locationText ?? '',
+    })
+  }
+
+  async function handleEditSave() {
+    if (!editTarget) return
+    try {
+      const updated = await adminUpdateEvent(editTarget.id, {
+        title:        editForm.title,
+        eventDate:    editForm.eventDate || null,
+        locationText: editForm.locationText || null,
+      })
+      setEvents(prev => prev.map(e => e.id === updated.id ? updated : e))
+    } catch (e: any) { setError(e.message) }
+    finally { setEditTarget(null) }
   }
 
   async function handleDelete() {
@@ -130,53 +155,89 @@ function EventsTab() {
           ))}
         </div>
 
-        <div className="bg-white rounded-xl border border-[#e8ddd4] overflow-hidden">
-          {loading ? (
-            <div className="py-16 text-center text-[#7a6652] text-sm">Cargando…</div>
-          ) : events.length === 0 ? (
-            <div className="py-16 text-center text-[#7a6652] text-sm">No hay eventos con este filtro.</div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-[#f9f6f1] border-b border-[#e8ddd4]">
-                <tr>
-                  <th className="text-left px-4 py-3 font-semibold text-[#2d1b0e]">Título</th>
-                  <th className="text-left px-4 py-3 font-semibold text-[#2d1b0e]">Zona</th>
-                  <th className="text-left px-4 py-3 font-semibold text-[#2d1b0e]">Fecha evento</th>
-                  <th className="text-left px-4 py-3 font-semibold text-[#2d1b0e]">Estado</th>
-                  <th className="text-right px-4 py-3 font-semibold text-[#2d1b0e]">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#f0e8df]">
-                {events.map(ev => (
-                  <tr key={ev.id} className="hover:bg-[#fdf9f6] transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-[#2d1b0e] line-clamp-1 max-w-[280px]">{ev.title}</div>
-                      <div className="text-xs text-[#7a6652] mt-0.5">{formatDate(ev.createdAt)}</div>
-                    </td>
-                    <td className="px-4 py-3 text-[#7a6652]">{ev.zone?.name ?? ev.locationText ?? '—'}</td>
-                    <td className="px-4 py-3 text-[#7a6652]">{formatDate(ev.eventDate)}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLORS[ev.status]}`}>
-                        {STATUS_LABELS[ev.status]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
-                        {ev.status === 'PENDING' && (
-                          <>
-                            <button onClick={() => handleApprove(ev)} className="text-green-700 hover:text-green-900 font-medium text-xs">Aprobar</button>
-                            <button onClick={() => setRejectTarget(ev)} className="text-yellow-700 hover:text-yellow-900 font-medium text-xs">Rechazar</button>
-                          </>
-                        )}
-                        <button onClick={() => setConfirmDelete(ev)} className="text-red-600 hover:text-red-800 font-medium text-xs">Eliminar</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        <DataTable<AdminEvent>
+          data={events}
+          loading={loading}
+          pageSize={PAGE_SIZE}
+          onPageChange={() => {
+            // Paginación manejada por el backend — los botones del DataTable son decorativos aquí.
+            // El control real de página está en los botones Anterior/Siguiente de abajo.
+          }}
+          columns={[
+            {
+              header: 'Título',
+              accessor: (ev) => (
+                <div>
+                  <div className="font-medium text-[#2d1b0e] line-clamp-1 max-w-[280px]">
+                    {ev.title}
+                  </div>
+                  <div className="text-xs text-[#7a6652] mt-0.5">
+                    {formatDate(ev.createdAt)}
+                  </div>
+                </div>
+              ),
+            },
+            {
+              header: 'Fecha',
+              accessor: (ev) => (
+                <span className="text-[#7a6652]">{formatDate(ev.eventDate)}</span>
+              ),
+            },
+            {
+              header: 'Estado',
+              accessor: (ev) => (
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                    STATUS_COLORS[ev.status] ?? 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  {STATUS_LABELS[ev.status] ?? ev.status}
+                </span>
+              ),
+            },
+            {
+              header: 'Acciones',
+              accessor: (ev) => (
+                <div className="flex items-center gap-2">
+                  {ev.status === 'PENDING' && (
+                    <>
+                      <button
+                        onClick={() => handleApprove(ev)}
+                        className="text-green-700 hover:text-green-900 font-medium text-xs transition-colors"
+                      >
+                        Aprobar
+                      </button>
+                      <button
+                        onClick={() => setRejectTarget(ev)}
+                        className="text-yellow-700 hover:text-yellow-900 font-medium text-xs transition-colors"
+                      >
+                        Rechazar
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={() => {
+                      console.log('Editar evento ID:', ev.id)
+                      openEdit(ev)
+                    }}
+                    className="text-blue-600 hover:text-blue-800 font-medium text-xs transition-colors"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => {
+                      console.log('Eliminar evento ID:', ev.id)
+                      setConfirmDelete(ev)
+                    }}
+                    className="text-red-600 hover:text-red-800 font-medium text-xs transition-colors"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              ),
+            },
+          ]}
+        />
 
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-2">
@@ -215,6 +276,50 @@ function EventsTab() {
                 className="flex-1 border border-[#e8ddd4] rounded-lg py-2 text-sm font-semibold text-[#7a6652] hover:border-[#931934] transition-colors">Cancelar</button>
               <button onClick={handleRejectConfirm}
                 className="flex-1 bg-[#931934] text-white rounded-lg py-2 text-sm font-semibold hover:bg-[#7a1528] transition-colors">Rechazar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editTarget && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-xl">
+            <h3 className="font-bold text-[#2d1b0e] text-lg mb-4">Editar evento</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-[#7a6652] uppercase tracking-wide">Título</label>
+                <input
+                  type="text"
+                  value={editForm.title}
+                  onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+                  className="w-full mt-1 border border-[#e8ddd4] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#931934]"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#7a6652] uppercase tracking-wide">Fecha del evento</label>
+                <input
+                  type="datetime-local"
+                  value={editForm.eventDate}
+                  onChange={e => setEditForm(f => ({ ...f, eventDate: e.target.value }))}
+                  className="w-full mt-1 border border-[#e8ddd4] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#931934]"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#7a6652] uppercase tracking-wide">Ubicación</label>
+                <input
+                  type="text"
+                  value={editForm.locationText}
+                  onChange={e => setEditForm(f => ({ ...f, locationText: e.target.value }))}
+                  placeholder="Ej. Auditorio Principal"
+                  className="w-full mt-1 border border-[#e8ddd4] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#931934]"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setEditTarget(null)}
+                className="flex-1 border border-[#e8ddd4] rounded-lg py-2 text-sm font-semibold text-[#7a6652] hover:border-[#931934] transition-colors">Cancelar</button>
+              <button onClick={handleEditSave}
+                className="flex-1 bg-[#931934] text-white rounded-lg py-2 text-sm font-semibold hover:bg-[#7a1528] transition-colors">Guardar</button>
             </div>
           </div>
         </div>
