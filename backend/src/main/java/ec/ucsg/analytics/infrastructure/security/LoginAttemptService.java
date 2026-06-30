@@ -5,14 +5,23 @@ import ec.ucsg.analytics.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Encapsula la política de bloqueo por intentos fallidos.
+ * Encapsula la politica de bloqueo por intentos fallidos.
  *
  * Regla de negocio: tras MAX_ATTEMPTS consecutivos, la cuenta queda
  * bloqueada hasta que un ADMIN la desbloquee manualmente (no hay
- * desbloqueo automático por tiempo, para mayor seguridad).
+ * desbloqueo automatico por tiempo, para mayor seguridad).
+ *
+ * IMPORTANTE - Propagation.REQUIRES_NEW en loginFailed / loginSucceeded:
+ *   AuthService.login() es @Transactional. Cuando las credenciales son
+ *   incorrectas, lanza BadCredentialsException, lo que provoca el rollback
+ *   de la transaccion padre. Si loginFailed() participara en esa misma
+ *   transaccion, el cambio locked=true tambien haria rollback y NUNCA
+ *   se persistiria en base de datos. REQUIRES_NEW abre una transaccion
+ *   propia que se confirma antes de que el padre haga rollback.
  */
 @Slf4j
 @Service
@@ -23,7 +32,7 @@ public class LoginAttemptService {
 
     private final UserRepository userRepository;
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void loginSucceeded(String email) {
         userRepository.findByEmail(email).ifPresent(user -> {
             if (user.getFailedLoginAttempts() > 0) {
@@ -33,7 +42,7 @@ public class LoginAttemptService {
         });
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void loginFailed(String email) {
         userRepository.findByEmail(email).ifPresent(user -> {
             user.incrementFailedAttempts();
@@ -47,7 +56,7 @@ public class LoginAttemptService {
         });
     }
 
-    @Transactional(readOnly = true)
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
     public boolean isLocked(String email) {
         return userRepository.findByEmail(email)
             .map(AppUser::isLocked)

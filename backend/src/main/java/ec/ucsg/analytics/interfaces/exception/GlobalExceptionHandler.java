@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -98,7 +99,28 @@ public class GlobalExceptionHandler {
             .body(ErrorResponse.of(423, "Account Locked", ex.getMessage(), request.getRequestURI()));
     }
 
-    // ── Credenciales inválidas ───────────────────────────────────────
+    // ── Cuenta bloqueada por Spring Security (LockedException) ───────────────────
+    // Segunda linea de defensa: si LockedException escapa de AuthService,
+    // se mapea a 423 en lugar de caer en el handler generico 500.
+
+    @ExceptionHandler(LockedException.class)
+    public ResponseEntity<ErrorResponse> handleSpringLocked(
+            LockedException ex,
+            HttpServletRequest request) {
+
+        log.warn("LockedException capturada en GlobalHandler para {}", request.getRequestURI());
+
+        return ResponseEntity
+            .status(HttpStatus.LOCKED)
+            .body(ErrorResponse.of(
+                423,
+                "Account Locked",
+                "Tu cuenta esta bloqueada. Contacta al administrador para desbloquearla.",
+                request.getRequestURI()
+            ));
+    }
+
+    // ── Credenciales invalidas ─────────────────────────────────────────────────────────────────────
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleBadCredentials(

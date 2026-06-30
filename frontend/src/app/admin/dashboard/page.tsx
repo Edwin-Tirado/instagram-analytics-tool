@@ -330,12 +330,15 @@ function EventsTab() {
 
 // ── Tab Usuarios ──────────────────────────────────────────────────────────────
 
+type UserFilter = 'all' | 'locked' | 'disabled'
+
 function UsersTab() {
-  const [users, setUsers]     = useState<AdminUser[]>([])
-  const [total, setTotal]     = useState(0)
-  const [page, setPage]       = useState(0)
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState<string | null>(null)
+  const [users, setUsers]           = useState<AdminUser[]>([])
+  const [total, setTotal]           = useState(0)
+  const [page, setPage]             = useState(0)
+  const [loading, setLoading]       = useState(false)
+  const [error, setError]           = useState<string | null>(null)
+  const [userFilter, setUserFilter] = useState<UserFilter>('all')
 
   const PAGE_SIZE = 20
 
@@ -371,6 +374,16 @@ function UsersTab() {
     } catch (e: any) { setError(e.message) }
   }
 
+  // Filtro client-side (los datos ya están cargados)
+  const filtered = users.filter(u => {
+    if (userFilter === 'locked')   return u.locked
+    if (userFilter === 'disabled') return !u.enabled
+    return true
+  })
+
+  const lockedCount   = users.filter(u => u.locked).length
+  const disabledCount = users.filter(u => !u.enabled).length
+
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
   const roleLabel = (roles: string[]) => {
@@ -381,9 +394,41 @@ function UsersTab() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-[#2d1b0e]">Gestión de Usuarios</h1>
-        <p className="text-sm text-[#7a6652] mt-0.5">{total} usuario{total !== 1 ? 's' : ''} registrados</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[#2d1b0e]">Gestión de Usuarios</h1>
+          <p className="text-sm text-[#7a6652] mt-0.5">{total} usuario{total !== 1 ? 's' : ''} registrados</p>
+        </div>
+        {/* Resumen rápido de bloqueados */}
+        {lockedCount > 0 && (
+          <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm font-semibold px-3 py-1.5 rounded-lg">
+            <span>&#128274;</span>
+            <span>{lockedCount} cuenta{lockedCount > 1 ? 's' : ''} bloqueada{lockedCount > 1 ? 's' : ''}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Filtros */}
+      <div className="flex gap-2">
+        {([
+          { key: 'all',      label: `Todos (${total})` },
+          { key: 'locked',   label: `🔒 Bloqueados (${lockedCount})` },
+          { key: 'disabled', label: `Desactivados (${disabledCount})` },
+        ] as { key: UserFilter; label: string }[]).map(f => (
+          <button
+            key={f.key}
+            onClick={() => setUserFilter(f.key)}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+              userFilter === f.key
+                ? f.key === 'locked'
+                  ? 'bg-red-600 text-white'
+                  : 'bg-[#931934] text-white'
+                : 'bg-white border border-[#e8ddd4] text-[#7a6652] hover:border-[#931934] hover:text-[#931934]'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
 
       {error && <div className="bg-red-50 border border-red-200 text-red-800 text-sm px-4 py-3 rounded-lg">{error}</div>}
@@ -391,8 +436,10 @@ function UsersTab() {
       <div className="bg-white rounded-xl border border-[#e8ddd4] overflow-hidden">
         {loading ? (
           <div className="py-16 text-center text-[#7a6652] text-sm">Cargando…</div>
-        ) : users.length === 0 ? (
-          <div className="py-16 text-center text-[#7a6652] text-sm">Sin usuarios registrados.</div>
+        ) : filtered.length === 0 ? (
+          <div className="py-16 text-center text-[#7a6652] text-sm">
+            {userFilter === 'locked' ? 'No hay cuentas bloqueadas. ✅' : 'Sin usuarios registrados.'}
+          </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-[#f9f6f1] border-b border-[#e8ddd4]">
@@ -405,13 +452,27 @@ function UsersTab() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f0e8df]">
-              {users.map(u => {
+              {filtered.map(u => {
                 const role = roleLabel(u.roles)
                 return (
-                  <tr key={u.id} className="hover:bg-[#fdf9f6] transition-colors">
+                  <tr
+                    key={u.id}
+                    className={`transition-colors ${
+                      u.locked
+                        ? 'bg-red-50 hover:bg-red-100'
+                        : 'hover:bg-[#fdf9f6]'
+                    }`}
+                  >
                     <td className="px-4 py-3">
-                      <div className="font-medium text-[#2d1b0e]">{u.fullName || '—'}</div>
-                      <div className="text-xs text-[#7a6652]">{u.email}</div>
+                      <div className="flex items-center gap-2">
+                        {u.locked && (
+                          <span title={`Bloqueado tras ${u.failedLoginAttempts} intentos`} className="text-red-500 text-base">&#128274;</span>
+                        )}
+                        <div>
+                          <div className="font-medium text-[#2d1b0e]">{u.fullName || '—'}</div>
+                          <div className="text-xs text-[#7a6652]">{u.email}</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       {u.roles.includes('ROLE_ADMIN') ? (
@@ -433,21 +494,35 @@ function UsersTab() {
                         <span className={`text-xs font-medium ${u.enabled ? 'text-green-700' : 'text-red-600'}`}>
                           {u.enabled ? 'Activo' : 'Desactivado'}
                         </span>
-                        {u.locked && <span className="text-xs text-orange-600">Bloqueado ({u.failedLoginAttempts} intentos)</span>}
+                        {u.locked && (
+                          <span className="text-xs font-semibold text-red-600">
+                            Bloqueado • {u.failedLoginAttempts} intentos
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => handleToggleEnabled(u)}
-                          className={`text-xs font-medium ${u.enabled ? 'text-red-600 hover:text-red-800' : 'text-green-700 hover:text-green-900'}`}>
-                          {u.enabled ? 'Desactivar' : 'Activar'}
-                        </button>
+                      <div className="flex items-center justify-end gap-2 flex-wrap">
+                        {/* Desbloquear — destacado como acción principal cuando aplica */}
                         {u.locked && (
-                          <button onClick={() => handleToggleLock(u)}
-                            className="text-xs font-medium text-orange-600 hover:text-orange-800">
+                          <button
+                            onClick={() => handleToggleLock(u)}
+                            className="flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                          >
+                            <span>&#128275;</span>
                             Desbloquear
                           </button>
                         )}
+                        <button
+                          onClick={() => handleToggleEnabled(u)}
+                          className={`text-xs font-medium ${
+                            u.enabled
+                              ? 'text-red-600 hover:text-red-800'
+                              : 'text-green-700 hover:text-green-900'
+                          }`}
+                        >
+                          {u.enabled ? 'Desactivar' : 'Activar'}
+                        </button>
                       </div>
                     </td>
                   </tr>

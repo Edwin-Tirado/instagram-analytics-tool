@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -88,6 +89,8 @@ public class AuthService {
 
     // ── Login ────────────────────────────────────────────────────────
 
+    // isLocked() usa REQUIRES_NEW (sesion Hibernate propia y limpia), por lo que
+    // siempre lee el estado real del DB sin importar el cache de la sesion padre.
     @Transactional
     public AuthResponse login(LoginRequest request) {
         String email = request.email().toLowerCase();
@@ -99,24 +102,30 @@ public class AuthService {
             throw new AccountLockedException(email);
         }
 
-        // 2. Delegar autenticación a Spring Security
+        // 2. Delegar autenticacion a Spring Security
         Authentication authentication;
         try {
             authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(email, request.password())
             );
+        } catch (LockedException e) {
+            // Spring Security detecto via UserDetails.isAccountNonLocked() que la cuenta
+            // esta bloqueada (bloqueo manual por admin). Devolvemos 423 directamente,
+            // sin registrar intento fallido adicional.
+            log.warn("Login rechazado — cuenta bloqueada (LockedException) para: {}", email);
+            throw new AccountLockedException(email);
         } catch (BadCredentialsException e) {
             // Registrar el intento fallido (puede desencadenar bloqueo)
             loginAttemptService.loginFailed(email);
 
-            // Verificamos si ahora quedó bloqueado para dar mensaje específico
+            // Verificamos si ahora quedo bloqueado para dar mensaje especifico
             if (loginAttemptService.isLocked(email)) {
-                log.warn("Cuenta bloqueada tras múltiples intentos: {}", email);
+                log.warn("Cuenta bloqueada tras multiples intentos: {}", email);
                 throw new AccountLockedException(email);
             }
 
-            // Mensaje genérico — no revelar si es email o password incorrecto
-            throw new BadCredentialsException("Credenciales inválidas");
+            // Mensaje generico — no revelar si es email o password incorrecto
+            throw new BadCredentialsException("Credenciales invalidas");
         }
 
         // 3. Autenticación exitosa — resetear contador de intentos

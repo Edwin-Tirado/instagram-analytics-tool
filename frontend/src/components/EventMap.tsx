@@ -63,6 +63,13 @@ export default function EventMap({ lat, lng, locationName }: EventMapProps) {
 
       mapInstanceRef.current = map
       if (!cancelled) setReady(true)
+
+      // Invalida el tamaño del mapa una vez estabilizada la animación del modal
+      setTimeout(() => {
+        if (!cancelled && map) {
+          map.invalidateSize()
+        }
+      }, 350)
     })
 
     return () => {

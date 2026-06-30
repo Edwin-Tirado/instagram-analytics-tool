@@ -11,6 +11,12 @@
       "static/chunks/_app-pages-browser_src_components_EventModal_tsx.js"
     ]
   },
+  "app\\page.tsx -> @/components/MapModal": {
+    "id": "app\\page.tsx -> @/components/MapModal",
+    "files": [
+      "static/chunks/_app-pages-browser_src_components_MapModal_tsx.js"
+    ]
+  },
   "components\\EventMap.tsx -> leaflet": {
     "id": "components\\EventMap.tsx -> leaflet",
     "files": [

@@ -12,12 +12,13 @@ import Toast from '@/components/Toast'
 import { getEvents, addReminder, deleteReminder, getMyReminders } from '@/lib/api'
 import { isAuthenticated } from '@/lib/auth'
 import { toUIEvent } from '@/lib/eventUtils'
-import { MOCK_EVENTS, HERO_SLIDES, FOOTER_COLS, CATEGORIES } from '@/lib/mockData'
+import { MOCK_EVENTS, HERO_SLIDES, FOOTER_COLS, CATEGORIES, FACILITY_COORDINATES } from '@/lib/mockData'
 import { EventSummary, ReminderMinutes, UIEvent } from '@/types'
 
-// EventModal se carga dinámicamente para evitar que Leaflet (que usa window)
-// intente ejecutarse durante SSR y lance "Element type is invalid: got undefined"
+// Cargas dinámicas para evitar que Leaflet intente ejecutarse en SSR
 const EventModal = dynamic(() => import('@/components/EventModal'), { ssr: false })
+const MapModal   = dynamic(() => import('@/components/MapModal'), { ssr: false })
+
 
 // ── Constantes de categoría ──────────────────────────────────────────────────
 
@@ -47,6 +48,7 @@ export default function HomePage() {
   const [reminderMap, setReminderMap]   = useState<Map<string, string>>(new Map()) // eventId → reminderId
   const [toast, setToast]               = useState(false)
   const [toastMsg, setToastMsg]         = useState('✅ Guardado en tus recordatorios')
+  const [activeMapFacility, setActiveMapFacility] = useState<{ title: string; lat: number; lng: number } | null>(null)
 
   // ── Carga inicial de eventos desde el backend ────────────────────────────
   useEffect(() => {
@@ -57,8 +59,10 @@ export default function HomePage() {
       .finally(() => setLoading(false))
   }, [])
 
-  // ── Carga recordatorios del usuario autenticado ──────────────────────────
+  // Carga recordatorios del usuario autenticado (solo si hay sesión)
+  const authenticated = isAuthenticated()
   useEffect(() => {
+    if (!authenticated) return // sin sesión → no llamar al backend
     getMyReminders()
       .then((list) => {
         const ids  = new Set(list.map((r) => r.eventId))
@@ -66,8 +70,8 @@ export default function HomePage() {
         setReminders(ids)
         setReminderMap(map)
       })
-      .catch(() => { /* no autenticado — reminders vacíos */ })
-  }, [])
+      .catch(() => { /* error silencioso */ })
+  }, [authenticated])
 
   // ── Construir UIEvents ───────────────────────────────────────────────────
   const uiEvents: UIEvent[] = rawEvents.map((ev) =>
@@ -124,6 +128,17 @@ export default function HomePage() {
     [selectedId, reminders, reminderMap],
   )
 
+  const handleOpenFacilityMap = useCallback((item: string) => {
+    const coords = FACILITY_COORDINATES[item]
+    if (coords) {
+      setActiveMapFacility({
+        title: item,
+        lat: coords.lat,
+        lng: coords.lng,
+      })
+    }
+  }, [])
+
   const countLabel = filtered.length === 1 ? '1 evento' : `${filtered.length} eventos`
 
   return (
@@ -147,7 +162,7 @@ export default function HomePage() {
         </p>
 
         <CategoryFilter
-          categories={CATEGORIES}
+          categories={authenticated ? CATEGORIES : CATEGORIES.filter(c => !c.includes('Recordatorios'))}
           active={activeCategory}
           onSelect={setActiveCategory}
         />
@@ -183,7 +198,7 @@ export default function HomePage() {
         )}
       </main>
 
-      <Footer columns={FOOTER_COLS} />
+      <Footer columns={FOOTER_COLS} onItemClick={handleOpenFacilityMap} />
 
       {/* Modal */}
       {selectedEvent && (
@@ -196,6 +211,16 @@ export default function HomePage() {
 
       {/* Toast notification */}
       <Toast visible={toast} message={toastMsg} />
+
+      {/* Map modal for footer spaces */}
+      {activeMapFacility && (
+        <MapModal
+          title={activeMapFacility.title}
+          lat={activeMapFacility.lat}
+          lng={activeMapFacility.lng}
+          onClose={() => setActiveMapFacility(null)}
+        />
+      )}
     </div>
   )
 }

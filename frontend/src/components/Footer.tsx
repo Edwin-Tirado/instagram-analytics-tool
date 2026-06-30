@@ -5,9 +5,10 @@ interface FooterColumn {
 
 interface FooterProps {
   columns: FooterColumn[]
+  onItemClick?: (item: string) => void
 }
 
-export default function Footer({ columns }: FooterProps) {
+export default function Footer({ columns, onItemClick }: FooterProps) {
   return (
     <footer className="
       bg-ucsg-brown-900 text-ucsg-brown-200
@@ -37,18 +38,19 @@ export default function Footer({ columns }: FooterProps) {
               </h3>
               <div className="flex flex-col gap-[11px]">
                 {col.items.map((item) => (
-                  <a
+                  <button
                     key={item}
-                    href="#"
+                    onClick={() => onItemClick?.(item)}
                     className="
-                      text-ucsg-brown-100 no-underline text-[0.9rem]
+                      bg-transparent border-none p-0 text-left cursor-pointer
+                      text-ucsg-brown-100 text-[0.9rem] font-sans
                       flex items-center gap-2
-                      hover:text-white transition-colors
+                      hover:text-white transition-colors focus:outline-none
                     "
                   >
                     <span className="text-ucsg-crimson-400">→</span>
                     {item}
-                  </a>
+                  </button>
                 ))}
               </div>
             </div>

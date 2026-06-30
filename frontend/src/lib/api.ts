@@ -54,10 +54,46 @@ async function apiFetch<T>(
   return res.json() as Promise<T>
 }
 
+/**
+ * Variante para endpoints de autenticación:
+ * - NO redirige en 401 (deja que el catch del login muestre el error)
+ * - Maneja 423 (cuenta bloqueada) con un error tipado
+ * - Maneja 401 (credenciales incorrectas) con el mensaje del backend
+ */
+export class AccountLockedError extends Error {
+  constructor(message?: string) {
+    super(message ?? 'Tu cuenta ha sido bloqueada por múltiples intentos fallidos.')
+    this.name = 'AccountLockedError'
+  }
+}
+
+async function authFetch<T>(
+  path: string,
+  init: RequestInit = {},
+): Promise<T> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(init.headers as Record<string, string> | undefined),
+    },
+    ...init,
+  })
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    if (res.status === 423) {
+      throw new AccountLockedError(body?.message)
+    }
+    throw new Error(body?.message ?? `HTTP ${res.status}`)
+  }
+
+  return res.json() as Promise<T>
+}
+
 // ── Autenticación ────────────────────────────────────────────────────────────
 
 export async function login(body: LoginRequest): Promise<AuthResponse> {
-  const data = await apiFetch<AuthResponse>('/api/auth/login', {
+  const data = await authFetch<AuthResponse>('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify(body),
   })
@@ -66,7 +102,7 @@ export async function login(body: LoginRequest): Promise<AuthResponse> {
 }
 
 export async function register(body: RegisterRequest): Promise<AuthResponse> {
-  const data = await apiFetch<AuthResponse>('/api/auth/register', {
+  const data = await authFetch<AuthResponse>('/api/auth/register', {
     method: 'POST',
     body: JSON.stringify(body),
   })
