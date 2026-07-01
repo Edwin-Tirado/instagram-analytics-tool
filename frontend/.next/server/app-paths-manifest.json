@@ -1,7 +1,4 @@
 {
-  "/register/page": "app/register/page.js",
-  "/page": "app/page.js",
-  "/admin/dashboard/page": "app/admin/dashboard/page.js",
-  "/login/page": "app/login/page.js",
-  "/supervisor/logs/page": "app/supervisor/logs/page.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/page": "app/page.js"
 }

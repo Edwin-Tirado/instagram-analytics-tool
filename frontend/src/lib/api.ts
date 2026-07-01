@@ -81,7 +81,9 @@ async function authFetch<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    if (res.status === 423) {
+    // 403 Forbidden = cuenta suspendida (nuevo comportamiento)
+    // 423 Locked    = comportamiento anterior (compatibilidad hacia atrás)
+    if (res.status === 403 || res.status === 423) {
       throw new AccountLockedError(body?.message)
     }
     throw new Error(body?.message ?? `HTTP ${res.status}`)
@@ -185,10 +187,38 @@ export async function adminTriggerSync(): Promise<IngestionRun> {
   return apiFetch<IngestionRun>('/api/admin/ingestion/run', { method: 'POST' })
 }
 
-// ── Supervisor: historial de ingesta ─────────────────────────────────────────
+// ── Supervisor: gestión y revisión de eventos ────────────────────────────────────
 
 export async function getIngestionRuns(page = 0, size = 20): Promise<IngestionRunPage> {
   return apiFetch<IngestionRunPage>(`/api/supervisor/ingestion-runs?page=${page}&size=${size}`)
+}
+
+/**
+ * Obtiene la lista paginada de eventos como SUPERVISOR o ADMIN.
+ * A diferencia de adminGetEvents, no filtra por status (ve todos los estados)
+ * y usa el endpoint /api/supervisor/events que acepta ROLE_SUPERVISOR.
+ */
+export async function supervisorGetEvents(page = 0, size = 20): Promise<AdminEventPage> {
+  return apiFetch<AdminEventPage>(`/api/supervisor/events?page=${page}&size=${size}`)
+}
+
+/**
+ * Aprueba un evento PENDING como SUPERVISOR o ADMIN.
+ * La acción queda auditada en el backend con el ID del supervisor.
+ */
+export async function supervisorApproveEvent(id: string): Promise<AdminEvent> {
+  return apiFetch<AdminEvent>(`/api/supervisor/events/${id}/approve`, { method: 'POST' })
+}
+
+/**
+ * Rechaza un evento PENDING como SUPERVISOR o ADMIN, con motivo opcional.
+ * La acción queda auditada en el backend con el ID del supervisor.
+ */
+export async function supervisorRejectEvent(id: string, reason?: string): Promise<AdminEvent> {
+  return apiFetch<AdminEvent>(`/api/supervisor/events/${id}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({ reason: reason ?? null }),
+  })
 }
 
 // ── Admin: gestión de usuarios ────────────────────────────────────────────────

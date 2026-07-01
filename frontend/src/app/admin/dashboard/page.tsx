@@ -7,7 +7,9 @@ import {
   adminApproveEvent, adminDeleteEvent, adminGetEvents,
   adminRejectEvent, adminTriggerSync, adminUpdateEvent,
   adminGetUsers, adminToggleLock, adminToggleEnabled, adminChangeRole,
+  supervisorApproveEvent, supervisorRejectEvent, supervisorGetEvents,
 } from '@/lib/api'
+import { getStoredUser } from '@/lib/auth'
 import { AdminEvent, AdminUser } from '@/types'
 
 // ── Eventos ──────────────────────────────────────────────────────────────────
@@ -50,22 +52,39 @@ function EventsTab() {
   const [editTarget, setEditTarget]       = useState<AdminEvent | null>(null)
   const [editForm, setEditForm]           = useState({ title: '', eventDate: '', locationText: '' })
 
+  // ── Roles del usuario autenticado ────────────────────────────────────────────
+  const [userRoles, setUserRoles] = useState<string[]>([])
+  useEffect(() => { setUserRoles(getStoredUser()?.roles ?? []) }, [])
+
+  const isAdmin      = userRoles.includes('ROLE_ADMIN')
+  const isSupervisor = userRoles.includes('ROLE_SUPERVISOR')
+  /** Puede aprobar/rechazar si es ADMIN o SUPERVISOR */
+  const canReview    = isAdmin || isSupervisor
+
   const PAGE_SIZE = 20
 
   const load = useCallback(async (p: number, f: Filter) => {
     setLoading(true); setError(null)
     try {
-      const data = await adminGetEvents(p, PAGE_SIZE, f || undefined)
+      // Si es solo supervisor (no admin), usa el endpoint de supervisor que no requiere ROLE_ADMIN.
+      // El admin usa su propio endpoint que soporta filtro por status.
+      const data = (!isAdmin && isSupervisor)
+        ? await supervisorGetEvents(p, PAGE_SIZE)
+        : await adminGetEvents(p, PAGE_SIZE, f || undefined)
       setEvents(data.content); setTotal(data.totalElements)
     } catch (e: any) { setError(e.message ?? 'Error al cargar eventos') }
     finally { setLoading(false) }
-  }, [])
+  }, [isAdmin, isSupervisor])
 
   useEffect(() => { load(page, filter) }, [page, filter, load])
 
   async function handleApprove(ev: AdminEvent) {
     try {
-      const updated = await adminApproveEvent(ev.id)
+      // Admin usa su propio endpoint; supervisor usa el endpoint de revisión de supervisor.
+      // En ambos casos el backend registra el revisor en event.reviewedBy (auditoría).
+      const updated = isAdmin
+        ? await adminApproveEvent(ev.id)
+        : await supervisorApproveEvent(ev.id)
       setEvents(prev => prev.map(e => e.id === updated.id ? updated : e))
     } catch (e: any) { setError(e.message) }
   }
@@ -73,7 +92,10 @@ function EventsTab() {
   async function handleRejectConfirm() {
     if (!rejectTarget) return
     try {
-      const updated = await adminRejectEvent(rejectTarget.id, rejectReason || undefined)
+      // Admin usa su propio endpoint; supervisor usa el endpoint de revisión de supervisor.
+      const updated = isAdmin
+        ? await adminRejectEvent(rejectTarget.id, rejectReason || undefined)
+        : await supervisorRejectEvent(rejectTarget.id, rejectReason || undefined)
       setEvents(prev => prev.map(e => e.id === updated.id ? updated : e))
     } catch (e: any) { setError(e.message) }
     finally { setRejectTarget(null); setRejectReason('') }
@@ -93,8 +115,8 @@ function EventsTab() {
     try {
       const updated = await adminUpdateEvent(editTarget.id, {
         title:        editForm.title,
-        eventDate:    editForm.eventDate || null,
-        locationText: editForm.locationText || null,
+        eventDate:    editForm.eventDate || undefined,
+        locationText: editForm.locationText || undefined,
       })
       setEvents(prev => prev.map(e => e.id === updated.id ? updated : e))
     } catch (e: any) { setError(e.message) }
@@ -128,16 +150,27 @@ function EventsTab() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-[#2d1b0e]">Gestión de Eventos</h1>
+            <h1 className="text-2xl font-bold text-[#2d1b0e]">
+              {isAdmin ? 'Gestión de Eventos' : 'Revisión de Eventos'}
+            </h1>
             <p className="text-sm text-[#7a6652] mt-0.5">{total} evento{total !== 1 ? 's' : ''} en total</p>
           </div>
-          <button
-            onClick={handleSync} disabled={syncing}
-            className="flex items-center gap-2 bg-[#931934] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#7a1528] disabled:opacity-60 transition-colors"
-          >
-            {syncing ? <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : '🔄'}
-            {syncing ? 'Sincronizando…' : 'Sincronizar Instagram'}
-          </button>
+          {/* Sincronizar solo para ADMIN */}
+          {isAdmin && (
+            <button
+              onClick={handleSync} disabled={syncing}
+              className="flex items-center gap-2 bg-[#931934] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#7a1528] disabled:opacity-60 transition-colors"
+            >
+              {syncing ? <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : '🔄'}
+              {syncing ? 'Sincronizando…' : 'Sincronizar Instagram'}
+            </button>
+          )}
+          {/* Indicador de rol para supervisor */}
+          {isSupervisor && !isAdmin && (
+            <span className="flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-semibold px-3 py-1.5 rounded-lg">
+              ✅ Modo Supervisor — Aprobar / Rechazar
+            </span>
+          )}
         </div>
 
         {syncMsg && <div className="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg">✅ {syncMsg}</div>}
@@ -199,40 +232,48 @@ function EventsTab() {
               header: 'Acciones',
               accessor: (ev) => (
                 <div className="flex items-center gap-2">
-                  {ev.status === 'PENDING' && (
+                  {/* Aprobar/Rechazar: visible para ADMIN y SUPERVISOR en eventos PENDING */}
+                  {canReview && ev.status === 'PENDING' && (
                     <>
                       <button
                         onClick={() => handleApprove(ev)}
                         className="text-green-700 hover:text-green-900 font-medium text-xs transition-colors"
+                        title={isSupervisor && !isAdmin ? 'Aprobar como Supervisor (queda en auditoría)' : 'Aprobar'}
                       >
                         Aprobar
                       </button>
                       <button
                         onClick={() => setRejectTarget(ev)}
                         className="text-yellow-700 hover:text-yellow-900 font-medium text-xs transition-colors"
+                        title={isSupervisor && !isAdmin ? 'Rechazar como Supervisor (queda en auditoría)' : 'Rechazar'}
                       >
                         Rechazar
                       </button>
                     </>
                   )}
-                  <button
-                    onClick={() => {
-                      console.log('Editar evento ID:', ev.id)
-                      openEdit(ev)
-                    }}
-                    className="text-blue-600 hover:text-blue-800 font-medium text-xs transition-colors"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => {
-                      console.log('Eliminar evento ID:', ev.id)
-                      setConfirmDelete(ev)
-                    }}
-                    className="text-red-600 hover:text-red-800 font-medium text-xs transition-colors"
-                  >
-                    Eliminar
-                  </button>
+                  {/* Editar/Eliminar: solo ADMIN */}
+                  {isAdmin && (
+                    <>
+                      <button
+                        onClick={() => {
+                          console.log('Editar evento ID:', ev.id)
+                          openEdit(ev)
+                        }}
+                        className="text-blue-600 hover:text-blue-800 font-medium text-xs transition-colors"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => {
+                          console.log('Eliminar evento ID:', ev.id)
+                          setConfirmDelete(ev)
+                        }}
+                        className="text-red-600 hover:text-red-800 font-medium text-xs transition-colors"
+                      >
+                        Eliminar
+                      </button>
+                    </>
+                  )}
                 </div>
               ),
             },

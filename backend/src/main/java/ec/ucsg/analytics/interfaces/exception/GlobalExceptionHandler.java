@@ -86,22 +86,23 @@ public class GlobalExceptionHandler {
     }
 
     // ── Cuenta bloqueada ─────────────────────────────────────────────
+    // HTTP 403: el bloqueo es absoluto, el primer intento falla sin tolerancia.
 
     @ExceptionHandler(AccountLockedException.class)
     public ResponseEntity<ErrorResponse> handleAccountLocked(
             AccountLockedException ex,
             HttpServletRequest request) {
 
-        log.warn("Acceso denegado — cuenta bloqueada en {}", request.getRequestURI());
+        log.warn("Acceso denegado — cuenta suspendida en {}", request.getRequestURI());
 
         return ResponseEntity
-            .status(HttpStatus.LOCKED)
-            .body(ErrorResponse.of(423, "Account Locked", ex.getMessage(), request.getRequestURI()));
+            .status(HttpStatus.FORBIDDEN)
+            .body(ErrorResponse.of(403, "Forbidden", ex.getMessage(), request.getRequestURI()));
     }
 
     // ── Cuenta bloqueada por Spring Security (LockedException) ───────────────────
-    // Segunda linea de defensa: si LockedException escapa de AuthService,
-    // se mapea a 423 en lugar de caer en el handler generico 500.
+    // Segunda línea de defensa: si LockedException escapa de AuthService,
+    // se mapea a 403 Forbidden para mantener la política de bloqueo absoluto.
 
     @ExceptionHandler(LockedException.class)
     public ResponseEntity<ErrorResponse> handleSpringLocked(
@@ -111,11 +112,11 @@ public class GlobalExceptionHandler {
         log.warn("LockedException capturada en GlobalHandler para {}", request.getRequestURI());
 
         return ResponseEntity
-            .status(HttpStatus.LOCKED)
+            .status(HttpStatus.FORBIDDEN)
             .body(ErrorResponse.of(
-                423,
-                "Account Locked",
-                "Tu cuenta esta bloqueada. Contacta al administrador para desbloquearla.",
+                403,
+                "Forbidden",
+                "Cuenta suspendida, contacte al administrador.",
                 request.getRequestURI()
             ));
     }

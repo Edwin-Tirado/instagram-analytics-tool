@@ -19,6 +19,12 @@ import java.util.List;
  *   1. Confirmación → inmediata al crear el recordatorio (ReminderService)
  *   2. Día del evento → a las 08:00 del día del evento (processDayReminders)
  *   3. X minutos antes → según minutesBefore configurado (processDueReminders)
+ *
+ * Nota importante sobre LAZY loading:
+ *   Las queries nativas devuelven entidades con relaciones LAZY. Se accede a
+ *   reminder.getEvent().getImages() dentro de la transacción (@Transactional)
+ *   para forzar la carga ANTES de pasar los objetos al método @Async del
+ *   EmailNotificationService, que se ejecuta fuera de la sesión Hibernate.
  */
 @Slf4j
 @Component
@@ -40,6 +46,11 @@ public class ReminderNotificationJob {
 
         for (Reminder reminder : due) {
             try {
+                // Forzar carga LAZY de imágenes dentro de la transacción activa
+                // antes de pasarlos al método @Async que corre fuera de la sesión.
+                int imageCount = reminder.getEvent().getImages().size();
+                log.debug("Imágenes pre-cargadas: {} para recordatorio {}", imageCount, reminder.getId());
+
                 emailService.sendReminderEmail(
                     reminder.getUser(),
                     reminder.getEvent(),
@@ -66,6 +77,10 @@ public class ReminderNotificationJob {
 
         for (Reminder reminder : due) {
             try {
+                // Forzar carga LAZY de imágenes dentro de la transacción activa
+                int imageCount = reminder.getEvent().getImages().size();
+                log.debug("Imágenes pre-cargadas: {} para recordatorio {}", imageCount, reminder.getId());
+
                 emailService.sendDayReminderEmail(
                     reminder.getUser(),
                     reminder.getEvent()

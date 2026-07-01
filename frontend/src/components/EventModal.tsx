@@ -10,14 +10,8 @@ interface EventModalProps {
   onToggleReminder: (minutes: ReminderMinutes) => void
 }
 
-const REMINDER_OPTIONS: { label: string; value: ReminderMinutes }[] = [
-  { label: '15 min antes', value: 15   },
-  { label: '30 min antes', value: 30   },
-  { label: '1 hora antes', value: 60   },
-  { label: '1 día antes',  value: 1440 },
-]
-
 export default function EventModal({ event, onClose, onToggleReminder }: EventModalProps) {
+
   // Cerrar con Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -135,17 +129,11 @@ export default function EventModal({ event, onClose, onToggleReminder }: EventMo
             )}
           </div>
 
-          {/* Reminder buttons */}
-          <p className="
-            text-[0.74rem] font-bold mb-3 text-ucsg-brown-200
-            uppercase tracking-[1px]
-          ">
-            {event.reminded ? '✔️ Recordatorio activo' : '🔔 Recordarme este evento'}
-          </p>
-
+          {/* ── Sección de recordatorio ─────────────────────────────── */}
           {event.reminded ? (
+            /* Estado: recordatorio activo → botón para cancelar */
             <button
-              onClick={() => onToggleReminder(60)}
+              onClick={() => onToggleReminder(15)}
               className="
                 w-full py-4 text-white border-none rounded-[11px]
                 text-[1.02rem] font-bold cursor-pointer font-sans
@@ -153,25 +141,22 @@ export default function EventModal({ event, onClose, onToggleReminder }: EventMo
                 hover:bg-ucsg-success-800 transition-colors
               "
             >
-              ✔️ Recordatorio configurado — toca para cancelar
+              ✔️ Recordatorio activado — toca para cancelar
             </button>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {REMINDER_OPTIONS.map(({ label, value }) => (
-                <button
-                  key={value}
-                  onClick={() => onToggleReminder(value)}
-                  className="
-                    py-[13px] text-white border-none rounded-[11px]
-                    text-[0.9rem] font-bold cursor-pointer font-sans
-                    bg-ucsg-crimson flex items-center justify-center gap-2
-                    hover:bg-ucsg-crimson-700 transition-colors
-                  "
-                >
-                  🔔 {label}
-                </button>
-              ))}
-            </div>
+            /* Estado: sin recordatorio → un clic directo crea el recordatorio */
+            <button
+              onClick={() => onToggleReminder(15)}
+              className="
+                w-full py-4 text-white border-none rounded-[11px]
+                text-[1.02rem] font-bold cursor-pointer font-sans
+                bg-ucsg-crimson flex items-center justify-center gap-[9px]
+                hover:bg-ucsg-crimson-700 active:scale-[0.98]
+                transition-all duration-150
+              "
+            >
+              🔔 Recordarme este evento
+            </button>
           )}
         </div>
       </div>

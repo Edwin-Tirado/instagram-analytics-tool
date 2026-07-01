@@ -50,6 +50,11 @@ export default function HomePage() {
   const [toastMsg, setToastMsg]         = useState('✅ Guardado en tus recordatorios')
   const [activeMapFacility, setActiveMapFacility] = useState<{ title: string; lat: number; lng: number } | null>(null)
 
+  // Evita hydration mismatch: isAuthenticated() lee localStorage, que no existe en SSR.
+  // Se evalúa únicamente en el cliente, tras el montaje del componente.
+  const [authenticated, setAuthenticated] = useState(false)
+  useEffect(() => { setAuthenticated(isAuthenticated()) }, [])
+
   // ── Carga inicial de eventos desde el backend ────────────────────────────
   useEffect(() => {
     setLoading(true)
@@ -60,7 +65,6 @@ export default function HomePage() {
   }, [])
 
   // Carga recordatorios del usuario autenticado (solo si hay sesión)
-  const authenticated = isAuthenticated()
   useEffect(() => {
     if (!authenticated) return // sin sesión → no llamar al backend
     getMyReminders()

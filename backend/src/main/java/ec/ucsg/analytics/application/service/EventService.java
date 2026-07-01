@@ -97,9 +97,18 @@ public class EventService {
         return eventMapper.toResponse(saved);
     }
 
-    // ── Endpoints del supervisor (gestión de eventos publicados) ─────
+    // ── Endpoints del supervisor (gestión de eventos) ───────────────────
 
-    /** Lista paginada de eventos APROBADOS (publicados) para que el supervisor los gestione. */
+    /**
+     * Lista paginada de TODOS los eventos (cualquier estado) para revisión del supervisor.
+     * El supervisor necesita ver los eventos PENDING para poder aprobarlos o rechazarlos.
+     */
+    @Transactional(readOnly = true)
+    public Page<EventResponse> getAllEventsForSupervisor(Pageable pageable) {
+        return eventRepository.findAll(pageable).map(eventMapper::toResponse);
+    }
+
+    /** Lista paginada de eventos APROBADOS (publicados) para gestión del supervisor. */
     @Transactional(readOnly = true)
     public Page<EventResponse> getApprovedEventsForSupervisor(Pageable pageable) {
         return eventRepository

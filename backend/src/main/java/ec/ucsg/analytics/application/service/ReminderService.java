@@ -49,6 +49,11 @@ public class ReminderService {
             log.info("Recordatorio creado: evento='{}', usuario={}, minutos={}",
                 event.getTitle(), userEmail, request.minutesBefore());
 
+            // Forzar carga de imágenes LAZY dentro de la transacción,
+            // antes de pasar el objeto al método @Async que corre fuera de la sesión Hibernate.
+            int imageCount = event.getImages().size();
+            log.debug("Imágenes pre-cargadas para email: {} (evento='{}')", imageCount, event.getTitle());
+
             // Email de confirmación inmediato
             emailService.sendReminderConfirmation(user, event, saved);
 

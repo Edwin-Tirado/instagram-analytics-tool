@@ -13,6 +13,7 @@ const NAV_ADMIN = [
 ]
 
 const NAV_SUPERVISOR = [
+  { href: '/admin/dashboard', label: 'Revisión de Eventos', icon: '✅' },
   { href: '/supervisor/logs', label: 'Historial Ingesta', icon: '📊' },
 ]
 
