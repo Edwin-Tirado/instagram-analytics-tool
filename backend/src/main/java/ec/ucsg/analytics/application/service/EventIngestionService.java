@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,23 +60,55 @@ public class EventIngestionService {
     // ── Punto de entrada (llamado desde el CRON job y el AdminController) ──
 
     /**
-     * Ejecuta el pipeline completo de ingesta y persiste el resultado en {@link IngestionRun}.
+     * Ejecuta el pipeline completo de ingesta de forma síncrona y persiste el
+     * resultado en {@link IngestionRun}. Usado por el CRON ({@link
+     * ec.ucsg.analytics.infrastructure.scheduling.InstagramIngestionJob}), que
+     * ya corre en su propio hilo de scheduling — bloquear ahí no afecta al dashboard.
      *
-     * @param triggerType SCHEDULED (CRON) o MANUAL (endpoint admin)
+     * @param triggerType SCHEDULED (CRON) o MANUAL (uso en tests/consola)
      * @return la entidad {@link IngestionRun} con el resultado final
      */
     public IngestionRun runIngestion(IngestionRun.TriggerType triggerType) {
+        IngestionRun run = createRun(triggerType);
+        executeIngestionPipeline(run);
+        return ingestionRunRepository.save(run);
+    }
 
-        IngestionRun run = ingestionRunRepository.save(
+    /**
+     * Crea el registro RUNNING sin ejecutar el pipeline — permite responder
+     * de inmediato al disparo manual desde el dashboard mientras el trabajo
+     * pesado (llamadas a la API de Instagram) corre en segundo plano.
+     */
+    public IngestionRun createRun(IngestionRun.TriggerType triggerType) {
+        return ingestionRunRepository.save(
             IngestionRun.builder()
                 .startedAt(LocalDateTime.now())
                 .triggerType(triggerType)
                 .build()
         );
+    }
 
+    /**
+     * Ejecuta el pipeline en segundo plano para un run ya creado con {@link #createRun}.
+     *
+     * IMPORTANTE: debe invocarse desde OTRO bean (p. ej. el controller), nunca
+     * con {@code this.executeIngestionAsync(...)} dentro de esta misma clase —
+     * el proxy de Spring que activa {@code @Async} no intercepta llamadas internas
+     * ("self-invocation"), y el método se ejecutaría de forma síncrona igual.
+     */
+    @Async
+    public void executeIngestionAsync(UUID runId) {
+        IngestionRun run = ingestionRunRepository.findById(runId)
+            .orElseThrow(() -> new EntityNotFoundException("Ejecución no encontrada: " + runId));
+        executeIngestionPipeline(run);
+        ingestionRunRepository.save(run);
+    }
+
+    /** Lógica compartida del pipeline — deja el resultado escrito en {@code run} (sin persistir). */
+    private void executeIngestionPipeline(IngestionRun run) {
         try {
             List<InstagramMediaItem> posts = apiClient.fetchRecentPosts();
-            log.info("Procesando {} posts (trigger={})", posts.size(), triggerType);
+            log.info("Procesando {} posts (trigger={})", posts.size(), run.getTriggerType());
 
             int created = 0, merged = 0, rejected = 0, skipped = 0;
 
@@ -98,11 +131,11 @@ public class EventIngestionService {
                 created, merged, rejected, skipped);
 
         } catch (Exception e) {
+            // La API de Instagram falló (o no hay posts) — se registra en la auditoría
+            // (IngestionRun.FAILED + errorMessage) sin detener el resto del dashboard.
             run.fail(e.getMessage());
             log.error("El pipeline de ingesta terminó con error: {}", e.getMessage(), e);
         }
-
-        return ingestionRunRepository.save(run);
     }
 
     // ── Consultas de historial (usadas por AdminIngestionController) ─

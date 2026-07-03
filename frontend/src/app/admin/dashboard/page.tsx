@@ -5,7 +5,7 @@ import AdminLayout from '@/components/admin/AdminLayout'
 import DataTable from '@/components/admin/DataTable'
 import {
   adminApproveEvent, adminDeleteEvent, adminGetEvents,
-  adminRejectEvent, adminTriggerSync, adminUpdateEvent,
+  adminRejectEvent, adminTriggerSync, adminGetIngestionRun, adminUpdateEvent,
   adminGetUsers, adminToggleLock, adminToggleEnabled, adminChangeRole,
   supervisorApproveEvent, supervisorRejectEvent, supervisorGetEvents,
   supervisorUpdateEvent, supervisorDeleteEvent,
@@ -159,11 +159,27 @@ function EventsTab() {
     finally { setConfirmDelete(null) }
   }
 
+  // El backend responde de inmediato con el run en estado RUNNING (procesa la
+  // ingesta en segundo plano) — hacemos polling hasta que termine para poder
+  // mostrar el resultado final y refrescar la tabla.
+  const POLL_INTERVAL_MS = 2000
+
   async function handleSync() {
     setSyncing(true); setSyncMsg(null); setError(null)
     try {
-      const run = await adminTriggerSync()
-      setSyncMsg(`Sincronización completada: ${run.createdCount} creados, ${run.mergedCount} fusionados, ${run.rejectedCount} rechazados.`)
+      const started = await adminTriggerSync()
+
+      let run = started
+      while (run.status === 'RUNNING') {
+        await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS))
+        run = await adminGetIngestionRun(run.id)
+      }
+
+      if (run.status === 'FAILED') {
+        setError(run.errorMessage ?? 'La sincronización con Instagram falló.')
+      } else {
+        setSyncMsg(`Sincronización completada: ${run.createdCount} creados, ${run.mergedCount} fusionados, ${run.rejectedCount} rechazados.`)
+      }
       load(0, filter); setPage(0)
     } catch (e: any) { setError(e.message) }
     finally { setSyncing(false) }

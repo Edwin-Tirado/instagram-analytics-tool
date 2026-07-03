@@ -33,7 +33,6 @@ public class EventClassificationService {
         "precio", "precios", "costo", "costos", "valor",
         "oferta", "ofertas",
         "promo", "promocion", "promociones",
-        "inscripciones", "inscripcion",
         "cupo", "cupos", "cupos limitados",
         "curso", "cursos",
         "link en bio", "enlace en bio",
@@ -48,6 +47,7 @@ public class EventClassificationService {
         // Señales de convocatoria
         "invitacion", "invitados", "asiste", "asistan", "bienvenidos",
         "te invitamos", "los invitamos", "estan invitados",
+        "inscripcion", "inscripciones",
         // Tipos de evento
         "evento", "actividad", "conferencia", "charla", "taller",
         "foro", "seminario", "ponencia", "congreso", "simposio",
@@ -56,7 +56,7 @@ public class EventClassificationService {
         "muestra", "concurso", "competencia", "campeonato",
         "debate", "panel", "coloquio", "webinar", "capacitacion",
         // Señales de lugar (zonas del campus UCSG)
-        "auditorio", "biblioteca", "cancha", "cafeteria", "salon",
+        "lugar", "auditorio", "biblioteca", "cancha", "cafeteria", "salon",
         "aula", "laboratorio", "bloque", "facultad", "rectorado",
         "parqueadero", "plaza", "patio",
         // Señales de participación

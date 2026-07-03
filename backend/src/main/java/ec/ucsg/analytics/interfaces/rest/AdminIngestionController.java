@@ -31,11 +31,14 @@ public class AdminIngestionController {
 
     /**
      * Dispara la ingesta manualmente sin esperar el CRON.
-     * La llamada es síncrona: devuelve la respuesta cuando el pipeline finaliza.
+     * Asíncrono: crea el registro RUNNING y responde de inmediato mientras el
+     * pipeline (llamadas a la API de Instagram) corre en segundo plano. El
+     * frontend hace polling de GET /runs/{id} hasta que status ya no sea RUNNING.
      */
     @PostMapping("/run")
     public ResponseEntity<IngestionRunResponse> triggerManualIngestion() {
-        IngestionRun run = ingestionService.runIngestion(IngestionRun.TriggerType.MANUAL);
+        IngestionRun run = ingestionService.createRun(IngestionRun.TriggerType.MANUAL);
+        ingestionService.executeIngestionAsync(run.getId());
         return ResponseEntity.ok(IngestionRunResponse.from(run));
     }
 

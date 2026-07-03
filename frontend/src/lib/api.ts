@@ -183,8 +183,14 @@ export async function adminRejectEvent(id: string, reason?: string): Promise<Adm
   })
 }
 
+/** Dispara la sincronización — el backend responde de inmediato con status RUNNING. */
 export async function adminTriggerSync(): Promise<IngestionRun> {
   return apiFetch<IngestionRun>('/api/admin/ingestion/run', { method: 'POST' })
+}
+
+/** Usado para hacer polling del run hasta que termine (status SUCCESS o FAILED). */
+export async function adminGetIngestionRun(id: string): Promise<IngestionRun> {
+  return apiFetch<IngestionRun>(`/api/admin/ingestion/runs/${id}`)
 }
 
 // ── Supervisor: gestión y revisión de eventos ────────────────────────────────────
