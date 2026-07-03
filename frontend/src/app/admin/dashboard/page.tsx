@@ -8,9 +8,11 @@ import {
   adminRejectEvent, adminTriggerSync, adminUpdateEvent,
   adminGetUsers, adminToggleLock, adminToggleEnabled, adminChangeRole,
   supervisorApproveEvent, supervisorRejectEvent, supervisorGetEvents,
+  supervisorUpdateEvent, supervisorDeleteEvent,
+  getZones,
 } from '@/lib/api'
 import { getStoredUser } from '@/lib/auth'
-import { AdminEvent, AdminUser } from '@/types'
+import { AdminEvent, AdminUser, Zone } from '@/types'
 
 // ── Eventos ──────────────────────────────────────────────────────────────────
 
@@ -50,11 +52,21 @@ function EventsTab() {
   const [rejectTarget, setRejectTarget]   = useState<AdminEvent | null>(null)
   const [rejectReason, setRejectReason]   = useState('')
   const [editTarget, setEditTarget]       = useState<AdminEvent | null>(null)
-  const [editForm, setEditForm]           = useState({ title: '', eventDate: '', locationText: '' })
+  const [editForm, setEditForm]           = useState({ title: '', eventDate: '', zoneId: 0, locationText: '' })
+  const [zones, setZones]                 = useState<Zone[]>([])
 
   // ── Roles del usuario autenticado ────────────────────────────────────────────
   const [userRoles, setUserRoles] = useState<string[]>([])
-  useEffect(() => { setUserRoles(getStoredUser()?.roles ?? []) }, [])
+  const [rolesReady, setRolesReady] = useState(false)
+  useEffect(() => {
+    setUserRoles(getStoredUser()?.roles ?? [])
+    setRolesReady(true)
+  }, [])
+
+  // Carga de zonas para el select de ubicación
+  useEffect(() => {
+    getZones().then(setZones).catch(() => {})
+  }, [])
 
   const isAdmin      = userRoles.includes('ROLE_ADMIN')
   const isSupervisor = userRoles.includes('ROLE_SUPERVISOR')
@@ -76,7 +88,10 @@ function EventsTab() {
     finally { setLoading(false) }
   }, [isAdmin, isSupervisor])
 
-  useEffect(() => { load(page, filter) }, [page, filter, load])
+  // Espera a conocer el rol real antes de pedir eventos — evita que un
+  // supervisor dispare por error la llamada de ADMIN (403) en el primer render,
+  // cuando userRoles todavía está vacío.
+  useEffect(() => { if (rolesReady) load(page, filter) }, [page, filter, load, rolesReady])
 
   async function handleApprove(ev: AdminEvent) {
     try {
@@ -106,6 +121,7 @@ function EventsTab() {
     setEditForm({
       title:        ev.title,
       eventDate:    ev.eventDate ? ev.eventDate.slice(0, 16) : '',
+      zoneId:       ev.zone?.id ?? 0,
       locationText: ev.locationText ?? '',
     })
   }
@@ -113,11 +129,16 @@ function EventsTab() {
   async function handleEditSave() {
     if (!editTarget) return
     try {
-      const updated = await adminUpdateEvent(editTarget.id, {
-        title:        editForm.title,
+      const body = {
+        title:        editForm.title || undefined,
         eventDate:    editForm.eventDate || undefined,
+        zoneId:       editForm.zoneId || undefined,
         locationText: editForm.locationText || undefined,
-      })
+      }
+      // Admin usa su endpoint; supervisor usa el endpoint de supervisor
+      const updated = isAdmin
+        ? await adminUpdateEvent(editTarget.id, body)
+        : await supervisorUpdateEvent(editTarget.id, body)
       setEvents(prev => prev.map(e => e.id === updated.id ? updated : e))
     } catch (e: any) { setError(e.message) }
     finally { setEditTarget(null) }
@@ -126,7 +147,12 @@ function EventsTab() {
   async function handleDelete() {
     if (!confirmDelete) return
     try {
-      await adminDeleteEvent(confirmDelete.id)
+      // Admin usa su endpoint; supervisor usa el endpoint de supervisor
+      if (isAdmin) {
+        await adminDeleteEvent(confirmDelete.id)
+      } else {
+        await supervisorDeleteEvent(confirmDelete.id)
+      }
       setEvents(prev => prev.filter(e => e.id !== confirmDelete.id))
       setTotal(t => t - 1)
     } catch (e: any) { setError(e.message) }
@@ -168,7 +194,7 @@ function EventsTab() {
           {/* Indicador de rol para supervisor */}
           {isSupervisor && !isAdmin && (
             <span className="flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-semibold px-3 py-1.5 rounded-lg">
-              ✅ Modo Supervisor — Aprobar / Rechazar
+              🗒️ Modo Supervisor — Gestión Completa
             </span>
           )}
         </div>
@@ -251,8 +277,8 @@ function EventsTab() {
                       </button>
                     </>
                   )}
-                  {/* Editar/Eliminar: solo ADMIN */}
-                  {isAdmin && (
+                  {/* Editar/Eliminar: ADMIN y SUPERVISOR */}
+                  {canReview && (
                     <>
                       <button
                         onClick={() => {
@@ -346,12 +372,31 @@ function EventsTab() {
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-[#7a6652] uppercase tracking-wide">Ubicación</label>
+                <label className="text-xs font-semibold text-[#7a6652] uppercase tracking-wide">Lugar (Zona del campus)</label>
+                <select
+                  value={editForm.zoneId}
+                  onChange={e => {
+                    const zoneId = Number(e.target.value)
+                    const zone = zones.find(z => z.id === zoneId)
+                    // Al cambiar de zona, "Ubicación adicional" parte del nombre
+                    // de la zona elegida — el usuario la sigue editando desde ahí.
+                    setEditForm(f => ({ ...f, zoneId, locationText: zone?.name ?? '' }))
+                  }}
+                  className="w-full mt-1 border border-[#e8ddd4] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#931934] bg-white text-[#2d1b0e]"
+                >
+                  <option value={0}>-- Selecciona una zona --</option>
+                  {zones.map(z => (
+                    <option key={z.id} value={z.id}>{z.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#7a6652] uppercase tracking-wide">Ubicación adicional <span className="text-[#b89f90] normal-case">(opcional)</span></label>
                 <input
                   type="text"
                   value={editForm.locationText}
                   onChange={e => setEditForm(f => ({ ...f, locationText: e.target.value }))}
-                  placeholder="Ej. Auditorio Principal"
+                  placeholder="Ej. Piso 2, Aula 204"
                   className="w-full mt-1 border border-[#e8ddd4] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#931934]"
                 />
               </div>

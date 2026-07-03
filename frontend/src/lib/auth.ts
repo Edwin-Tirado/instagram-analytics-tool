@@ -5,6 +5,19 @@ const REFRESH_TOKEN_KEY = 'ucsg_refresh_token'
 const USER_KEY          = 'ucsg_user'
 const ROLE_COOKIE       = 'ucsg_role'
 
+// Igual a la duración del refresh token en el backend (7 días).
+// Sin max-age, la cookie es "de sesión" y el navegador la borra al cerrarse,
+// mientras el JWT en localStorage sigue vivo — eso deja al usuario con una
+// sesión "a medias": autenticado según localStorage, pero el middleware
+// (que solo lee la cookie) lo manda a /login como si hubiera cerrado sesión.
+const ROLE_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
+
+function deriveRoleCookieValue(roles: string[]): string {
+  return roles.find(r => r === 'ROLE_ADMIN')
+    ?? roles.find(r => r === 'ROLE_SUPERVISOR')
+    ?? 'ROLE_USER'
+}
+
 // ── Persistencia de tokens ───────────────────────────────────────────────────
 
 export function getAccessToken(): string | null {
@@ -23,11 +36,23 @@ export function setTokens(
     localStorage.setItem(USER_KEY, JSON.stringify(user))
     // Cookie legible por el middleware de Next.js (Edge Runtime no accede a localStorage)
     // No es una barrera de seguridad — Spring Security verifica el JWT en cada request
-    const role = user.roles.find(r => r === 'ROLE_ADMIN')
-      ?? user.roles.find(r => r === 'ROLE_SUPERVISOR')
-      ?? 'ROLE_USER'
-    document.cookie = `${ROLE_COOKIE}=${role}; path=/; SameSite=Lax`
+    const role = deriveRoleCookieValue(user.roles)
+    document.cookie = `${ROLE_COOKIE}=${role}; path=/; max-age=${ROLE_COOKIE_MAX_AGE}; SameSite=Lax`
   }
+}
+
+/**
+ * Vuelve a escribir la cookie de rol a partir del usuario en localStorage.
+ * Se invoca al montar páginas autenticadas para autocurar el caso en el que
+ * la cookie se perdió (o expiró antes que el JWT) pero la sesión sigue
+ * siendo válida — evita el "cierre de sesión" fantasma hacia /login.
+ */
+export function ensureRoleCookie(): void {
+  if (typeof window === 'undefined') return
+  const user = getStoredUser()
+  if (!user) return
+  const role = deriveRoleCookieValue(user.roles)
+  document.cookie = `${ROLE_COOKIE}=${role}; path=/; max-age=${ROLE_COOKIE_MAX_AGE}; SameSite=Lax`
 }
 
 export function clearTokens(): void {

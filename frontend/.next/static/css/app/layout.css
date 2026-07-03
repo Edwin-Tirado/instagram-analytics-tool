@@ -1811,6 +1811,9 @@ video {
 .uppercase {
   text-transform: uppercase;
 }
+.normal-case {
+  text-transform: none;
+}
 .leading-\[1\.05\] {
   line-height: 1.05;
 }
@@ -1876,6 +1879,10 @@ video {
 .text-\[\#931934\] {
   --tw-text-opacity: 1;
   color: rgb(147 25 52 / var(--tw-text-opacity, 1));
+}
+.text-\[\#b89f90\] {
+  --tw-text-opacity: 1;
+  color: rgb(184 159 144 / var(--tw-text-opacity, 1));
 }
 .text-amber-800 {
   --tw-text-opacity: 1;

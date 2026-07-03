@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { logout } from '@/lib/api'
-import { getStoredUser, isAuthenticated } from '@/lib/auth'
+import { ensureRoleCookie, getStoredUser, isAuthenticated } from '@/lib/auth'
 import { AuthResponse } from '@/types'
 
 export default function Navbar() {
@@ -13,7 +13,10 @@ export default function Navbar() {
 
   // Leer usuario del localStorage al montar (solo en cliente)
   useEffect(() => {
-    if (isAuthenticated()) setUser(getStoredUser())
+    if (isAuthenticated()) {
+      ensureRoleCookie()
+      setUser(getStoredUser())
+    }
   }, [])
 
   function handleLogout() {

@@ -2,18 +2,19 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { clearTokens, getStoredUser } from '@/lib/auth'
+import { clearTokens, ensureRoleCookie, getStoredUser } from '@/lib/auth'
 import { AuthResponse } from '@/types'
 
 interface Props { children: React.ReactNode }
 
 const NAV_ADMIN = [
-  { href: '/admin/dashboard', label: 'Eventos', icon: '📋' },
+  { href: '/admin/dashboard', label: 'Gestión de Eventos', icon: '🗒️' },
   { href: '/admin/dashboard?tab=users', label: 'Usuarios', icon: '👥' },
+  { href: '/supervisor/logs', label: 'Historial Ingesta', icon: '📊' },
 ]
 
 const NAV_SUPERVISOR = [
-  { href: '/admin/dashboard', label: 'Revisión de Eventos', icon: '✅' },
+  { href: '/admin/dashboard', label: 'Gestión de Eventos', icon: '🗒️' },
   { href: '/supervisor/logs', label: 'Historial Ingesta', icon: '📊' },
 ]
 
@@ -22,7 +23,10 @@ export default function AdminLayout({ children }: Props) {
   const router   = useRouter()
   const [user, setUser] = useState<AuthResponse['user'] | null>(null)
 
-  useEffect(() => { setUser(getStoredUser()) }, [])
+  useEffect(() => {
+    ensureRoleCookie()
+    setUser(getStoredUser())
+  }, [])
 
   const isAdmin = user?.roles.includes('ROLE_ADMIN') ?? false
 
@@ -31,9 +35,7 @@ export default function AdminLayout({ children }: Props) {
     router.push('/login')
   }
 
-  const navItems = isAdmin
-    ? [...NAV_ADMIN, ...NAV_SUPERVISOR]
-    : NAV_SUPERVISOR
+  const navItems = isAdmin ? NAV_ADMIN : NAV_SUPERVISOR
 
   return (
     <div className="min-h-screen flex bg-[#f9f6f1]">
@@ -41,7 +43,7 @@ export default function AdminLayout({ children }: Props) {
       <aside className="w-60 bg-[#931934] text-white flex flex-col">
         <div className="px-6 py-5 border-b border-white/20">
           <div className="text-xs font-semibold tracking-widest uppercase text-white/60 mb-0.5">UCSG</div>
-          <div className="text-lg font-bold">Panel Admin</div>
+          <div className="text-lg font-bold">{isAdmin ? 'Panel Admin' : 'Panel Supervisor'}</div>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">

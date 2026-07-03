@@ -190,7 +190,7 @@ export async function adminTriggerSync(): Promise<IngestionRun> {
 // ── Supervisor: gestión y revisión de eventos ────────────────────────────────────
 
 export async function getIngestionRuns(page = 0, size = 20): Promise<IngestionRunPage> {
-  return apiFetch<IngestionRunPage>(`/api/supervisor/ingestion-runs?page=${page}&size=${size}`)
+  return apiFetch<IngestionRunPage>(`/api/supervisor/events/ingestion-runs?page=${page}&size=${size}`)
 }
 
 /**
@@ -219,6 +219,25 @@ export async function supervisorRejectEvent(id: string, reason?: string): Promis
     method: 'POST',
     body: JSON.stringify({ reason: reason ?? null }),
   })
+}
+
+/**
+ * Edita un evento como SUPERVISOR o ADMIN.
+ * Usa el endpoint /api/supervisor/events/{id} que acepta ROLE_SUPERVISOR.
+ */
+export async function supervisorUpdateEvent(id: string, body: UpdateEventBody): Promise<AdminEvent> {
+  return apiFetch<AdminEvent>(`/api/supervisor/events/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  })
+}
+
+/**
+ * Elimina un evento como SUPERVISOR o ADMIN.
+ * Usa el endpoint /api/supervisor/events/{id} que acepta ROLE_SUPERVISOR.
+ */
+export async function supervisorDeleteEvent(id: string): Promise<void> {
+  return apiFetch<void>(`/api/supervisor/events/${id}`, { method: 'DELETE' })
 }
 
 // ── Admin: gestión de usuarios ────────────────────────────────────────────────
