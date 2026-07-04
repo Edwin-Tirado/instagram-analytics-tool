@@ -66,6 +66,15 @@ public class EmailNotificationService {
         send(user.getEmail(), subject, body);
     }
 
+    // ── 4. Nuevo evento aprobado en una zona de interés del usuario ──────────
+
+    @Async
+    public void sendNewEventNotification(AppUser user, Event event) {
+        String subject = "🎉 Nuevo evento en tu zona de interés: " + event.getTitle();
+        String body    = buildNewEventHtml(user, event);
+        send(user.getEmail(), subject, body);
+    }
+
     // ── Core de envío ────────────────────────────────────────────────────────
 
     @Async
@@ -233,6 +242,53 @@ public class EmailNotificationService {
             """.formatted(imageHtml, name, label, event.getTitle(), dateStr, zone, ctaUrl, year);
     }
 
+    private String buildNewEventHtml(AppUser user, Event event) {
+        String dateStr   = event.getEventDate() != null
+            ? event.getEventDate().format(DATE_FORMAT) : "Fecha por confirmar";
+        String zone      = event.getZone() != null ? event.getZone().getName() : "Campus UCSG";
+        String name      = user.getFullName() != null ? user.getFullName() : user.getEmail();
+        String imageHtml = buildImageBlock(event);
+        String ctaUrl    = buildEventUrl(event);
+        int    year      = java.time.Year.now().getValue();
+
+        return """
+            <!DOCTYPE html>
+            <html lang="es">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            </head>
+            <body style="font-family:Arial,sans-serif;background:#f5f0eb;padding:20px;margin:0;">
+              <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+                <div style="background:#931934;color:#fff;padding:28px 32px;">
+                  <p style="margin:0 0 4px;font-size:13px;opacity:.8;letter-spacing:2px;text-transform:uppercase;">UCSG Eventos</p>
+                  <h1 style="margin:0;font-size:22px;font-weight:700;">Nuevo evento en tu zona 🎉</h1>
+                </div>
+                %s
+                <div style="padding:32px;">
+                  <p style="color:#4a3728;margin:0 0 8px;">Hola, <strong>%s</strong></p>
+                  <p style="color:#6b5344;margin:0 0 24px;">Se acaba de aprobar un evento en <strong>%s</strong>, una zona donde ya has puesto recordatorios antes. Puede interesarte:</p>
+                  <div style="background:#fdf6f0;border-left:4px solid #931934;padding:18px 20px;border-radius:6px;margin-bottom:28px;">
+                    <h2 style="margin:0 0 10px;color:#931934;font-size:17px;">%s</h2>
+                    <p style="margin:4px 0;color:#4a3728;">📅 <strong>%s</strong></p>
+                    <p style="margin:4px 0;color:#4a3728;">📍 <strong>%s</strong></p>
+                  </div>
+                  <div style="text-align:center;margin-bottom:8px;">
+                    <a href="%s" target="_blank"
+                       style="display:inline-block;background:#931934;color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 32px;border-radius:8px;letter-spacing:.3px;">
+                      🔔 Recordarme este evento
+                    </a>
+                  </div>
+                </div>
+                <div style="background:#fdf6f0;padding:16px 32px;text-align:center;color:#b89f90;font-size:12px;">
+                  © %d Universidad Católica de Santiago de Guayaquil
+                </div>
+              </div>
+            </body>
+            </html>
+            """.formatted(imageHtml, name, zone, event.getTitle(), dateStr, zone, ctaUrl, year);
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     /**
@@ -259,10 +315,10 @@ public class EmailNotificationService {
 
     /**
      * Construye la URL de deep-link al evento en el frontend.
-     * Formato: {frontendUrl}/events?id={eventId}
+     * Formato: {frontendUrl}/events/{eventId} — página de detalle dedicada.
      */
     private String buildEventUrl(Event event) {
-        return frontendUrl + "/events?id=" + event.getId();
+        return frontendUrl + "/events/" + event.getId();
     }
 
     /** Escapa caracteres HTML en atributos de imagen. */

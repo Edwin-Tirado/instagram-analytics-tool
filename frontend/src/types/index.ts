@@ -35,10 +35,15 @@ export interface EventSummary {
   createdAt: string
 }
 
-/** Refleja EventResponse del backend (detalle completo) */
+/** Refleja EventResponse del backend (detalle completo, GET /api/public/events/{id}) */
 export interface Event extends EventSummary {
   instagramPostId: string | null
   updatedAt: string | null
+  // El detalle real del backend devuelve las imágenes como URLs planas,
+  // no como EventImage[] (eso es solo para las respuestas de admin/supervisor).
+  imageUrls?: string[]
+  rejectionReason?: string | null
+  review?: { reviewerEmail: string | null; reviewedAt: string | null } | null
 }
 
 /** Wrapper de paginación — refleja PageResponse<T> del backend */

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { UIEvent, ReminderMinutes } from '@/types'
+import EventImage from './EventImage'
 import EventMap from './EventMap'
 
 interface EventModalProps {
@@ -37,10 +38,7 @@ export default function EventModal({ event, onClose, onToggleReminder }: EventMo
         {/* Hero image */}
         <div className="relative">
           {event.imageUrl ? (
-            <div
-              className="w-full h-[240px] bg-cover bg-center"
-              style={{ backgroundImage: `url(${event.imageUrl})` }}
-            />
+            <EventImage src={event.imageUrl} alt={event.title} className="w-full h-[240px]" />
           ) : (
             <div className="w-full h-[240px] bg-ucsg-warm-100 flex items-center justify-center">
               <span className="text-ucsg-muted text-6xl">📸</span>

@@ -17,13 +17,26 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Cliente HTTP para la Instagram Graph API v19.0.
+ * Cliente HTTP para "Instagram API with Instagram Login"
+ * ({@code base-url: https://graph.instagram.com/v19.0} en application.yml).
  *
  * Usa {@link RestClient} (Spring 6.1) — síncrono, sin dependencias extra.
  *
- * Autenticación: Long-Lived User Access Token configurado en la variable
- * de entorno {@code INSTAGRAM_LONG_LIVED_TOKEN}. El token debe pertenecer
- * a un usuario Business/Creator que administre la cuenta @ucsgnotificaciones.
+ * Autenticación: access token de Instagram (prefijo "IGA..."), generado
+ * agregando la cuenta como "Instagram tester" en la app de Meta (sección
+ * Instagram → "Configuración de la API con inicio de sesión para empresas
+ * de Instagram" → "Generar identificadores de acceso"). El token vigente se
+ * obtiene en cada llamada vía {@link InstagramTokenProvider} (BD, no
+ * application.yml directo) para que la renovación automática semanal
+ * ({@code InstagramTokenRefreshJob}) tenga efecto sin reiniciar el backend.
+ * NO requiere que @ucsgnotificaciones esté vinculada a ninguna Página de
+ * Facebook (a diferencia de la Facebook Graph API clásica vía
+ * {@code graph.facebook.com}, que sí lo exige).
+ *
+ * OJO: NO usar aquí un token "EAA..." de la Facebook Graph API — es un
+ * producto distinto con otro formato de token; mezclar ambos hace que la
+ * ingesta falle en silencio si el error no se propaga (ver
+ * {@link InstagramApiException}).
  *
  * Paginación: la API devuelve hasta 25 posts por página con cursor-based
  * paging. Este cliente itera todas las páginas automáticamente.
@@ -40,20 +53,20 @@ public class InstagramGraphApiClient {
     /** Máximo de páginas a consumir por ejecución (failsafe anti-bucle). */
     private static final int MAX_PAGES = 20;
 
-    private final RestClient  restClient;
-    private final String      accountId;
-    private final String      accessToken;
-    private final int         daysLookback;
+    private final RestClient             restClient;
+    private final InstagramTokenProvider tokenProvider;
+    private final String                 accountId;
+    private final int                    daysLookback;
 
     public InstagramGraphApiClient(
             @Value("${app.instagram.base-url}")    String baseUrl,
             @Value("${app.instagram.account-id}")  String accountId,
-            @Value("${app.instagram.access-token}") String accessToken,
-            @Value("${app.instagram.days-lookback:30}") int daysLookback) {
+            @Value("${app.instagram.days-lookback:30}") int daysLookback,
+            InstagramTokenProvider tokenProvider) {
 
-        this.accountId   = accountId;
-        this.accessToken = accessToken;
-        this.daysLookback = daysLookback;
+        this.accountId     = accountId;
+        this.daysLookback  = daysLookback;
+        this.tokenProvider = tokenProvider;
 
         this.restClient = RestClient.builder()
             .baseUrl(baseUrl)
@@ -65,6 +78,13 @@ public class InstagramGraphApiClient {
     /**
      * Recupera todos los posts de los últimos {@code daysLookback} días,
      * iterando la paginación cursor-based de la Graph API.
+     *
+     * IMPORTANTE: si la API falla (token inválido/expirado, cuenta desvinculada,
+     * etc.) esto SE RELANZA como {@link InstagramApiException} — antes se
+     * atrapaba aquí y se devolvía la lista parcial en silencio, lo que hacía que
+     * un fallo de autenticación se viera idéntico a "no hay posts nuevos"
+     * (IngestionRun quedaba en SUCCESS con 0 creados en vez de FAILED con el
+     * error real). Quien llama debe decidir qué hacer con el fallo.
      */
     public List<InstagramMediaItem> fetchRecentPosts() {
         long sinceTimestamp = Instant.now()
@@ -93,7 +113,8 @@ public class InstagramGraphApiClient {
 
             } catch (RestClientException e) {
                 log.error("Error llamando a la Graph API (página {}): {}", page, e.getMessage());
-                break;
+                throw new InstagramApiException(
+                    "Error llamando a la Instagram Graph API: " + e.getMessage(), e);
             }
         }
 
@@ -109,7 +130,7 @@ public class InstagramGraphApiClient {
         String url = UriComponentsBuilder
             .fromPath("/{mediaId}/children")
             .queryParam("fields",       CHILDREN_FIELDS)
-            .queryParam("access_token", accessToken)
+            .queryParam("access_token", tokenProvider.getCurrentToken())
             .buildAndExpand(mediaId)
             .toUriString();
 
@@ -136,7 +157,7 @@ public class InstagramGraphApiClient {
             .fromPath("/{accountId}/media")
             .queryParam("fields",       MEDIA_FIELDS)
             .queryParam("since",        sinceTimestamp)
-            .queryParam("access_token", accessToken)
+            .queryParam("access_token", tokenProvider.getCurrentToken())
             .buildAndExpand(accountId)
             .toUriString();
     }

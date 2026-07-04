@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-07-03T10:17:40-0500",
+    date = "2026-07-04T09:43:31-0500",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 17.0.12 (Oracle Corporation)"
 )
 @Component
@@ -66,7 +66,7 @@ public class EventMapperImpl implements EventMapper {
 
         String id = event.getId().toString();
         String status = event.getStatus().name();
-        String zoneName = event.getZone() != null ? event.getZone().getName() : null;
+        String zoneName = event.getZone() != null ? event.getZone().getName() : DEFAULT_CAMPUS_NAME;
         Double latitude = extractLatitude(event.getZone());
         Double longitude = extractLongitude(event.getZone());
         String thumbnailUrl = extractThumbnail(event);

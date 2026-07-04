@@ -5,13 +5,14 @@ import AdminLayout from '@/components/admin/AdminLayout'
 import DataTable from '@/components/admin/DataTable'
 import {
   adminApproveEvent, adminDeleteEvent, adminGetEvents,
-  adminRejectEvent, adminTriggerSync, adminGetIngestionRun, adminUpdateEvent,
+  adminRejectEvent, adminUpdateEvent,
   adminGetUsers, adminToggleLock, adminToggleEnabled, adminChangeRole,
   supervisorApproveEvent, supervisorRejectEvent, supervisorGetEvents,
   supervisorUpdateEvent, supervisorDeleteEvent,
   getZones,
 } from '@/lib/api'
 import { getStoredUser } from '@/lib/auth'
+import { useInstagramSync } from '@/lib/useInstagramSync'
 import { AdminEvent, AdminUser, Zone } from '@/types'
 
 // ── Eventos ──────────────────────────────────────────────────────────────────
@@ -45,8 +46,6 @@ function EventsTab() {
   const [page, setPage]           = useState(0)
   const [filter, setFilter]       = useState<Filter>('')
   const [loading, setLoading]     = useState(false)
-  const [syncing, setSyncing]     = useState(false)
-  const [syncMsg, setSyncMsg]     = useState<string | null>(null)
   const [error, setError]         = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<AdminEvent | null>(null)
   const [rejectTarget, setRejectTarget]   = useState<AdminEvent | null>(null)
@@ -159,31 +158,9 @@ function EventsTab() {
     finally { setConfirmDelete(null) }
   }
 
-  // El backend responde de inmediato con el run en estado RUNNING (procesa la
-  // ingesta en segundo plano) — hacemos polling hasta que termine para poder
-  // mostrar el resultado final y refrescar la tabla.
-  const POLL_INTERVAL_MS = 2000
-
-  async function handleSync() {
-    setSyncing(true); setSyncMsg(null); setError(null)
-    try {
-      const started = await adminTriggerSync()
-
-      let run = started
-      while (run.status === 'RUNNING') {
-        await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS))
-        run = await adminGetIngestionRun(run.id)
-      }
-
-      if (run.status === 'FAILED') {
-        setError(run.errorMessage ?? 'La sincronización con Instagram falló.')
-      } else {
-        setSyncMsg(`Sincronización completada: ${run.createdCount} creados, ${run.mergedCount} fusionados, ${run.rejectedCount} rechazados.`)
-      }
-      load(0, filter); setPage(0)
-    } catch (e: any) { setError(e.message) }
-    finally { setSyncing(false) }
-  }
+  const { syncing, syncMsg, syncError, triggerSync } = useInstagramSync(() => {
+    load(0, filter); setPage(0)
+  })
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
@@ -200,7 +177,7 @@ function EventsTab() {
           {/* Sincronizar solo para ADMIN */}
           {isAdmin && (
             <button
-              onClick={handleSync} disabled={syncing}
+              onClick={triggerSync} disabled={syncing}
               className="flex items-center gap-2 bg-[#931934] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#7a1528] disabled:opacity-60 transition-colors"
             >
               {syncing ? <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : '🔄'}
@@ -216,7 +193,7 @@ function EventsTab() {
         </div>
 
         {syncMsg && <div className="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg">✅ {syncMsg}</div>}
-        {error   && <div className="bg-red-50 border border-red-200 text-red-800 text-sm px-4 py-3 rounded-lg">{error}</div>}
+        {(error || syncError) && <div className="bg-red-50 border border-red-200 text-red-800 text-sm px-4 py-3 rounded-lg">{error || syncError}</div>}
 
         <div className="flex gap-2">
           {(['', 'PENDING', 'APPROVED', 'REJECTED'] as Filter[]).map(f => (

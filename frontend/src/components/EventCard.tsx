@@ -1,5 +1,6 @@
 'use client'
 
+import EventImage from './EventImage'
 import { UIEvent } from '@/types'
 
 interface EventCardProps {
@@ -22,10 +23,7 @@ export default function EventCard({ event, onClick }: EventCardProps) {
       {/* Image column */}
       <div className="relative w-[296px] min-w-[296px] bg-ucsg-warm-100">
         {event.imageUrl ? (
-          <div
-            className="w-full h-full bg-cover bg-center"
-            style={{ backgroundImage: `url(${event.imageUrl})` }}
-          />
+          <EventImage src={event.imageUrl} alt={event.title} className="w-full h-full" />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-ucsg-warm-100">
             <span className="text-ucsg-muted text-4xl">📸</span>

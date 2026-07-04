@@ -17,6 +17,7 @@ export default function EventMap({ lat, lng, locationName }: EventMapProps) {
   // Referencia a la instancia del mapa para destruirla en cleanup
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapInstanceRef = useRef<any>(null)
+  const resizeObserverRef = useRef<ResizeObserver | null>(null)
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
@@ -70,10 +71,22 @@ export default function EventMap({ lat, lng, locationName }: EventMapProps) {
           map.invalidateSize()
         }
       }, 350)
+
+      // Un setTimeout fijo no basta: si algo ARRIBA del mapa cambia de tamaño
+      // después (ej. una imagen del post que tarda en cargar y empuja el
+      // layout), Leaflet queda con el tamaño de contenedor viejo y solo pide
+      // los tiles que "creía" necesitar — se ve con huecos en blanco. El
+      // ResizeObserver reacciona a cualquier cambio real de tamaño del
+      // contenedor, sin importar cuándo ocurra.
+      const resizeObserver = new ResizeObserver(() => map.invalidateSize())
+      resizeObserver.observe(containerRef.current!)
+      resizeObserverRef.current = resizeObserver
     })
 
     return () => {
       cancelled = true
+      resizeObserverRef.current?.disconnect()
+      resizeObserverRef.current = null
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove()
         mapInstanceRef.current = null

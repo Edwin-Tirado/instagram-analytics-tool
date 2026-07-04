@@ -5,10 +5,13 @@ import ec.ucsg.analytics.application.dto.response.EventResponse;
 import ec.ucsg.analytics.application.dto.response.EventSummaryResponse;
 import ec.ucsg.analytics.application.dto.response.ZoneResponse;
 import ec.ucsg.analytics.application.mapper.EventMapper;
+import ec.ucsg.analytics.domain.enums.AuditAction;
 import ec.ucsg.analytics.domain.enums.EventStatus;
 import ec.ucsg.analytics.domain.model.AppUser;
+import ec.ucsg.analytics.domain.model.AuditLog;
 import ec.ucsg.analytics.domain.model.Event;
 import ec.ucsg.analytics.domain.model.Zone;
+import ec.ucsg.analytics.domain.repository.AuditLogRepository;
 import ec.ucsg.analytics.domain.repository.EventRepository;
 import ec.ucsg.analytics.domain.repository.UserRepository;
 import ec.ucsg.analytics.domain.repository.ZoneRepository;
@@ -29,10 +32,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class EventService {
 
-    private final EventRepository eventRepository;
-    private final UserRepository  userRepository;
-    private final ZoneRepository  zoneRepository;
-    private final EventMapper     eventMapper;
+    private final EventRepository            eventRepository;
+    private final UserRepository             userRepository;
+    private final ZoneRepository             zoneRepository;
+    private final EventMapper                eventMapper;
+    private final AuditLogRepository         auditLogRepository;
+    private final EventApprovalNotifier      eventApprovalNotifier;
 
     // ── Endpoints públicos (mapa) ────────────────────────────────────
 
@@ -81,7 +86,13 @@ public class EventService {
             .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado: " + adminEmail));
         event.approve(admin);
         Event saved = eventRepository.save(event);
+        recordAudit(saved, admin, AuditAction.APPROVED);
         log.info("Evento '{}' aprobado por {}", saved.getTitle(), adminEmail);
+
+        // Notificación en segundo plano — un fallo de envío no debe revertir la
+        // aprobación, que ya quedó confirmada en las líneas anteriores.
+        eventApprovalNotifier.notifyEventApproved(saved);
+
         return eventMapper.toResponse(saved);
     }
 
@@ -93,8 +104,20 @@ public class EventService {
             .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado: " + adminEmail));
         event.reject(admin, reason);
         Event saved = eventRepository.save(event);
+        recordAudit(saved, admin, AuditAction.REJECTED);
         log.info("Evento '{}' rechazado por {}", saved.getTitle(), adminEmail);
         return eventMapper.toResponse(saved);
+    }
+
+    /** Registra en audit_logs el timestamp, la acción, el supervisor/admin y el evento. */
+    private void recordAudit(Event event, AppUser supervisor, AuditAction action) {
+        auditLogRepository.save(
+            AuditLog.builder()
+                .event(event)
+                .supervisor(supervisor)
+                .action(action)
+                .build()
+        );
     }
 
     // ── Endpoints del supervisor (gestión de eventos) ───────────────────

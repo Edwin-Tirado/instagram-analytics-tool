@@ -38,7 +38,8 @@ import java.util.UUID;
  * │ 4. Matching de zona por keywords                             │
  * │ 5. Detección de evento duplicado (título + zona + fecha ±1h) │
  * │ 6a. Duplicado → añadir imagen al carrusel existente          │
- * │ 6b. Nuevo     → crear Event(PENDING) + EventImage            │
+ * │ 6b. Nuevo     → crear Event(APPROVED) + EventImage — se       │
+ * │                 autopublica, el supervisor solo edita/elimina │
  * │ 6c. Spam      → crear Event(REJECTED) con motivo automático  │
  * └─────────────────────────────────────────────────────────────┘
  */
@@ -204,20 +205,23 @@ public class EventIngestionService {
             }
         }
 
-        // 7. Crear nuevo evento en estado PENDING — requiere aprobación del admin
+        // 7. Crear nuevo evento — se autopublica (APPROVED) de inmediato.
+        // El supervisor ya no aprueba/rechaza lo que viene de Instagram; solo
+        // edita o elimina después si hace falta corregir algo (título, zona,
+        // fecha) o quitar un post que no debió publicarse.
         Event newEvent = Event.builder()
             .title(title)
             .caption(caption)
             .locationText(zone.map(Zone::getName).orElse(null))
             .zone(zone.orElse(null))
             .eventDate(eventDate)
-            .status(EventStatus.PENDING)
+            .status(EventStatus.APPROVED)
             .instagramPostId(post.getId())
             .build();
 
         appendImagesToEvent(newEvent, post);
         eventRepository.save(newEvent);
-        log.info("Nuevo evento PENDIENTE creado: '{}' (postId={})", title, post.getId());
+        log.info("Nuevo evento autopublicado: '{}' (postId={})", title, post.getId());
         return IngestionOutcome.CREATED;
     }
 

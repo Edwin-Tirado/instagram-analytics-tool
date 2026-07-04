@@ -71,13 +71,21 @@ app:
       refresh-expiration-ms: 604800000  # 7 días
     max-failed-attempts: 5
 
-  # ── Instagram Graph API ────────────────────────────────────────────
+  # ── Instagram API with Instagram Login ─────────────────────────────
+  # Token de tipo "IGA..." generado como Instagram tester en la app
+  # UCSG-Notificaciones-IG (Instagram App ID 4581798622096878) — por eso
+  # base-url es graph.instagram.com. NO mezclar con tokens "EAA..." de la
+  # Facebook Graph API (esos son de graph.facebook.com, otro producto).
   instagram:
-    account-id: "17841467472099951"
-    access-token: "EAANXHv9mZBEoBR0kx8p9zD8jXx27UXZCjg6ZAu6ZBEZAxZCDYmM8oFBFwNlgookQ4WmDLaCvy0OvhshxzIy1Bclccj1HrhGXOC3zUMUSaFZBrr0HReKdn1BC6nioWTWfnZCDKBwkv5pqeyqBqBJtKZCzmp6XeZCa4MJt3fkOiQFXIxENZBeODsJGm5swkDM3Wq5"
+    account-id: "17841423691798765"
+    access-token: "IGABBHHx9Nbe5BZAFpCVF9YU2JwZAElNRUwwaUdIUWg0TEp5MzkzcU9teXBFdXExU1gyUk9HMEFjTWpwUmJXNkFVdjA0VTVEYndhVWxlQ0dHeTBhMVZAPYjFJa0V4cVNGbzIwb1YyX0JDbjVOOTlZAeEhwalpNNG5DX2tYc0xCQmF0MAZDZD"
+    # app-id / app-secret: identidad de la app de Meta — usados para refrescar
+    # el access token de larga duración antes de que expire (cada ~60 días).
+    app-id: "4581798622096878"
+    app-secret: "6aed208a62988f23bdcedc1d11060d45"
     base-url: https://graph.instagram.com/v19.0
     cron-expression: "0 0 */2 * * *"
-    days-lookback: 30
+    days-lookback: 180
 
   # ── Correo — configuración de la aplicación ───────────────────────
   mail:

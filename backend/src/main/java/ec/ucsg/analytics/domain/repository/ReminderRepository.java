@@ -1,5 +1,6 @@
 package ec.ucsg.analytics.domain.repository;
 
+import ec.ucsg.analytics.domain.model.AppUser;
 import ec.ucsg.analytics.domain.model.Reminder;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -16,6 +17,21 @@ public interface ReminderRepository extends JpaRepository<Reminder, UUID> {
     List<Reminder> findByUserId(UUID userId);
 
     List<Reminder> findByUserIdAndEventId(UUID userId, UUID eventId);
+
+    /**
+     * Usuarios que alguna vez pusieron un recordatorio en un evento de esta zona
+     * (excluyendo al propio evento) — usado como proxy de "interés" para notificar
+     * sobre nuevos eventos aprobados en zonas que ya le importan al usuario.
+     */
+    @Query("""
+        SELECT DISTINCT r.user FROM Reminder r
+        WHERE r.event.zone.id = :zoneId
+          AND r.event.id <> :excludeEventId
+        """)
+    List<AppUser> findDistinctInterestedUsersByZoneId(
+        @Param("zoneId") Long zoneId,
+        @Param("excludeEventId") UUID excludeEventId
+    );
 
     /**
      * Recordatorios cuya ventana de X-minutos-antes ya venció y aún no fueron enviados.

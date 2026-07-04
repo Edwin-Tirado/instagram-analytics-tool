@@ -14,6 +14,14 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface EventMapper {
 
+    // Ubicación real del campus Guayaquil de la UCSG (centroide aproximado de
+    // las zonas de V1__init_schema.sql) — respaldo cuando un evento no tiene
+    // zona específica asignada, para que el mapa SIEMPRE muestre algo en vez
+    // de quedar oculto/vacío.
+    double DEFAULT_CAMPUS_LATITUDE  = -2.150217;
+    double DEFAULT_CAMPUS_LONGITUDE = -79.894667;
+    String DEFAULT_CAMPUS_NAME      = "Campus UCSG";
+
     // ── EventResponse (detalle completo) ────────────────────────────
 
     @Mapping(target = "id",             expression = "java(event.getId().toString())")
@@ -26,7 +34,7 @@ public interface EventMapper {
 
     @Mapping(target = "id",           expression = "java(event.getId().toString())")
     @Mapping(target = "status",       expression = "java(event.getStatus().name())")
-    @Mapping(target = "zoneName",     expression = "java(event.getZone() != null ? event.getZone().getName() : null)")
+    @Mapping(target = "zoneName",     expression = "java(event.getZone() != null ? event.getZone().getName() : DEFAULT_CAMPUS_NAME)")
     @Mapping(target = "latitude",     expression = "java(extractLatitude(event.getZone()))")
     @Mapping(target = "longitude",    expression = "java(extractLongitude(event.getZone()))")
     @Mapping(target = "thumbnailUrl", expression = "java(extractThumbnail(event))")
@@ -35,7 +43,9 @@ public interface EventMapper {
     // ── Métodos default de apoyo ─────────────────────────────────────
 
     default EventResponse.ZoneInfo toZoneInfo(Zone zone) {
-        if (zone == null) return null;
+        if (zone == null) {
+            return new EventResponse.ZoneInfo(null, DEFAULT_CAMPUS_NAME, DEFAULT_CAMPUS_LATITUDE, DEFAULT_CAMPUS_LONGITUDE);
+        }
         return new EventResponse.ZoneInfo(
             zone.getId(),
             zone.getName(),
@@ -65,12 +75,12 @@ public interface EventMapper {
     }
 
     default Double extractLatitude(Zone zone) {
-        if (zone == null || zone.getLocation() == null) return null;
+        if (zone == null || zone.getLocation() == null) return DEFAULT_CAMPUS_LATITUDE;
         return zone.getLocation().getY();   // Y = latitud en WGS84
     }
 
     default Double extractLongitude(Zone zone) {
-        if (zone == null || zone.getLocation() == null) return null;
+        if (zone == null || zone.getLocation() == null) return DEFAULT_CAMPUS_LONGITUDE;
         return zone.getLocation().getX();   // X = longitud en WGS84
     }
 }

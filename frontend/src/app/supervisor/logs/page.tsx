@@ -2,6 +2,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { getIngestionRuns } from '@/lib/api'
+import { getStoredUser } from '@/lib/auth'
+import { useInstagramSync } from '@/lib/useInstagramSync'
 import { IngestionRun } from '@/types'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -37,6 +39,11 @@ export default function SupervisorLogsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<string | null>(null)
 
+  const [isAdmin, setIsAdmin] = useState(false)
+  useEffect(() => {
+    setIsAdmin(getStoredUser()?.roles.includes('ROLE_ADMIN') ?? false)
+  }, [])
+
   const PAGE_SIZE = 20
 
   const load = useCallback(async (p: number) => {
@@ -55,6 +62,9 @@ export default function SupervisorLogsPage() {
 
   useEffect(() => { load(page) }, [page, load])
 
+  // Sincronizar Instagram es solo para ADMIN — el endpoint del backend lo exige igual.
+  const { syncing, syncMsg, syncError, triggerSync } = useInstagramSync(() => load(0))
+
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
   // Resumen de errores
@@ -66,16 +76,33 @@ export default function SupervisorLogsPage() {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-[#2d1b0e]">Historial de Ingesta</h1>
-          <p className="text-sm text-[#7a6652] mt-0.5">
-            Registro de ejecuciones del scraper de Instagram
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-[#2d1b0e]">Historial de Ingesta</h1>
+            <p className="text-sm text-[#7a6652] mt-0.5">
+              Registro de ejecuciones del scraper de Instagram
+            </p>
+          </div>
+          {isAdmin && (
+            <button
+              onClick={triggerSync} disabled={syncing}
+              className="flex items-center gap-2 bg-[#931934] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#7a1528] disabled:opacity-60 transition-colors"
+            >
+              {syncing ? <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : '🔄'}
+              {syncing ? 'Sincronizando…' : 'Sincronizar Instagram'}
+            </button>
+          )}
         </div>
 
-        {error && (
+        {syncMsg && (
+          <div className="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg">
+            ✅ {syncMsg}
+          </div>
+        )}
+
+        {(error || syncError) && (
           <div className="bg-red-50 border border-red-200 text-red-800 text-sm px-4 py-3 rounded-lg">
-            {error}
+            {error || syncError}
           </div>
         )}
 
