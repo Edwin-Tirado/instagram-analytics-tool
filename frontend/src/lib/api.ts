@@ -200,12 +200,14 @@ export async function getIngestionRuns(page = 0, size = 20): Promise<IngestionRu
 }
 
 /**
- * Obtiene la lista paginada de eventos como SUPERVISOR o ADMIN.
- * A diferencia de adminGetEvents, no filtra por status (ve todos los estados)
- * y usa el endpoint /api/supervisor/events que acepta ROLE_SUPERVISOR.
+ * Obtiene la lista paginada de eventos como SUPERVISOR o ADMIN, usando el
+ * endpoint /api/supervisor/events que acepta ROLE_SUPERVISOR. Sin status,
+ * trae todos los estados (para que el supervisor vea los PENDING); con
+ * status, filtra igual que adminGetEvents.
  */
-export async function supervisorGetEvents(page = 0, size = 20): Promise<AdminEventPage> {
-  return apiFetch<AdminEventPage>(`/api/supervisor/events?page=${page}&size=${size}`)
+export async function supervisorGetEvents(page = 0, size = 20, status?: string): Promise<AdminEventPage> {
+  const qs = status ? `&status=${status}` : ''
+  return apiFetch<AdminEventPage>(`/api/supervisor/events?page=${page}&size=${size}${qs}`)
 }
 
 /**

@@ -7,6 +7,7 @@ import ec.ucsg.analytics.application.dto.response.IngestionRunResponse;
 import ec.ucsg.analytics.application.dto.response.PageResponse;
 import ec.ucsg.analytics.application.service.EventIngestionService;
 import ec.ucsg.analytics.application.service.EventService;
+import ec.ucsg.analytics.domain.enums.EventStatus;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,13 +58,16 @@ public class SupervisorController {
     @GetMapping
     public ResponseEntity<PageResponse<EventResponse>> getAllEventsForReview(
             @RequestParam(defaultValue = "0")  int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false)    EventStatus status) {
 
-        // El supervisor ve TODOS los estados (PENDING, APPROVED, REJECTED)
-        // para poder revisar y actuar sobre los eventos pendientes.
+        // Sin status: el supervisor ve TODOS los estados (PENDING, APPROVED,
+        // REJECTED) para poder revisar y actuar sobre los pendientes. Con
+        // status: filtra igual que el panel de admin (botones Pendiente/
+        // Publicado/Rechazado).
         PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         return ResponseEntity.ok(
-            PageResponse.of(eventService.getAllEventsForSupervisor(pageable))
+            PageResponse.of(eventService.getAllEventsForSupervisor(status, pageable))
         );
     }
 

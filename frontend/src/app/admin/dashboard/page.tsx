@@ -78,9 +78,9 @@ function EventsTab() {
     setLoading(true); setError(null)
     try {
       // Si es solo supervisor (no admin), usa el endpoint de supervisor que no requiere ROLE_ADMIN.
-      // El admin usa su propio endpoint que soporta filtro por status.
+      // Ambos endpoints ya soportan filtro por status.
       const data = (!isAdmin && isSupervisor)
-        ? await supervisorGetEvents(p, PAGE_SIZE)
+        ? await supervisorGetEvents(p, PAGE_SIZE, f || undefined)
         : await adminGetEvents(p, PAGE_SIZE, f || undefined)
       setEvents(data.content); setTotal(data.totalElements)
     } catch (e: any) { setError(e.message ?? 'Error al cargar eventos') }

@@ -44,7 +44,7 @@ public class EventService {
     @Transactional(readOnly = true)
     public Page<EventSummaryResponse> getApprovedForMap(Pageable pageable) {
         return eventRepository
-            .findUpcomingApproved(LocalDateTime.now(), pageable)
+            .findUpcomingApproved(pageable)
             .map(eventMapper::toSummary);
     }
 
@@ -123,12 +123,17 @@ public class EventService {
     // ── Endpoints del supervisor (gestión de eventos) ───────────────────
 
     /**
-     * Lista paginada de TODOS los eventos (cualquier estado) para revisión del supervisor.
-     * El supervisor necesita ver los eventos PENDING para poder aprobarlos o rechazarlos.
+     * Lista paginada de eventos para revisión del supervisor.
+     * Si status es null, devuelve TODOS los estados (necesario para que el
+     * supervisor vea los PENDING y pueda aprobarlos/rechazarlos); si viene
+     * un status, filtra igual que el panel de admin.
      */
     @Transactional(readOnly = true)
-    public Page<EventResponse> getAllEventsForSupervisor(Pageable pageable) {
-        return eventRepository.findAll(pageable).map(eventMapper::toResponse);
+    public Page<EventResponse> getAllEventsForSupervisor(EventStatus status, Pageable pageable) {
+        Page<Event> page = (status != null)
+            ? eventRepository.findByStatus(status, pageable)
+            : eventRepository.findAll(pageable);
+        return page.map(eventMapper::toResponse);
     }
 
     /** Lista paginada de eventos APROBADOS (publicados) para gestión del supervisor. */

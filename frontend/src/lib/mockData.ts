@@ -93,10 +93,13 @@ export const CATEGORIES = ['Todos', 'Académicos', 'Arte y Cultura', 'Deportes',
 
 export const FACILITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
   // Campus Principal
-  'Facultades de Ingeniería': { lat: -2.181166, lng: -79.904848 },
-  'Facultades de Medicina':    { lat: -2.179836, lng: -79.904533 },
-  'Edificio de Posgrados':     { lat: -2.180424, lng: -79.903901 },
-  'Clínica Odontológica':      { lat: -2.180018, lng: -79.904153 },
+  // Coordenadas verificadas por el usuario vía Google Maps (ver
+  // V11__real_zone_coordinates_from_google_maps.sql) — antes estaban
+  // aproximadas y quedaban entre 50-300m del edificio real.
+  'Facultades de Ingeniería': { lat: -2.181166,    lng: -79.904848 },
+  'Facultades de Medicina':    { lat: -2.182557043, lng: -79.905744857 },
+  'Edificio de Posgrados':     { lat: -2.180431595, lng: -79.90472964 },
+  'Clínica Odontológica':      { lat: -2.180018,    lng: -79.904153 },
 
   // Auditorios
   'Aula Magna':                { lat: -2.180823, lng: -79.904107 },
@@ -111,9 +114,9 @@ export const FACILITY_COORDINATES: Record<string, { lat: number; lng: number }> 
   'Gimnasio UCSG':             { lat: -2.183000, lng: -79.905000 },
 
   // Servicios Estudiantiles
-  'Biblioteca General':        { lat: -2.181543, lng: -79.904322 },
-  'Medios UCSG (Radio/TV)':    { lat: -2.182800, lng: -79.904600 },
-  'Capilla Universitaria':     { lat: -2.182350, lng: -79.904000 },
-  'CoWorking Space':           { lat: -2.181950, lng: -79.904250 },
+  'Biblioteca General':        { lat: -2.1822609,   lng: -79.9035173 },
+  'Medios UCSG (Radio/TV)':    { lat: -2.182800,    lng: -79.904600 },
+  'Capilla Universitaria':     { lat: -2.182081296, lng: -79.904356811 },
+  'CoWorking Space':           { lat: -2.181950,    lng: -79.904250 },
 }
 

@@ -38,11 +38,17 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
         @Param("dateTo")   LocalDateTime dateTo
     );
 
+    /**
+     * Todos los eventos APROBADOS para la cartelera pública — sin filtrar por
+     * fecha. Antes exigía eventDate >= ahora, lo que ocultaba eventos ya
+     * publicados sin fecha (CaptionParser no la encontró) o con fecha pasada.
+     * "Publicado" debe significar visible, punto — la fecha es solo para
+     * ordenar, no para decidir si se muestra.
+     */
     @Query("""
         SELECT e FROM Event e
         WHERE e.status = 'APPROVED'
-          AND e.eventDate >= :from
-        ORDER BY e.eventDate ASC
+        ORDER BY e.eventDate ASC NULLS LAST
         """)
-    Page<Event> findUpcomingApproved(@Param("from") LocalDateTime from, Pageable pageable);
+    Page<Event> findUpcomingApproved(Pageable pageable);
 }

@@ -5,12 +5,6 @@
       "static/chunks/_app-pages-browser_node_modules_next_dist_client_dev_noop-turbopack-hmr_js.js"
     ]
   },
-  "app\\events\\[id]\\page.tsx -> @/components/EventMap": {
-    "id": "app\\events\\[id]\\page.tsx -> @/components/EventMap",
-    "files": [
-      "static/chunks/_app-pages-browser_src_components_EventMap_tsx.js"
-    ]
-  },
   "app\\page.tsx -> @/components/EventModal": {
     "id": "app\\page.tsx -> @/components/EventModal",
     "files": [
