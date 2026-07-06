@@ -70,53 +70,5 @@ export const HERO_SLIDES = [
   },
 ]
 
-export const FOOTER_COLS = [
-  {
-    title: 'Campus Principal',
-    items: ['Facultades de Ingeniería', 'Facultades de Medicina', 'Edificio de Posgrados', 'Clínica Odontológica'],
-  },
-  {
-    title: 'Auditorios',
-    items: ['Aula Magna', 'Auditorio Leonidas Ortega', 'Salón de Usos Múltiples', 'Salas de Conferencias IT'],
-  },
-  {
-    title: 'Deportes y Recreación',
-    items: ['Canchas Múltiples', 'Cancha de Césped Sintético', 'Piscina Universitaria', 'Gimnasio UCSG'],
-  },
-  {
-    title: 'Servicios Estudiantiles',
-    items: ['Biblioteca General', 'Medios UCSG (Radio/TV)', 'Capilla Universitaria', 'CoWorking Space'],
-  },
-]
-
 export const CATEGORIES = ['Todos', 'Académicos', 'Arte y Cultura', 'Deportes', 'Mis Recordatorios ⭐']
-
-export const FACILITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
-  // Campus Principal
-  // Coordenadas verificadas por el usuario vía Google Maps (ver
-  // V11__real_zone_coordinates_from_google_maps.sql) — antes estaban
-  // aproximadas y quedaban entre 50-300m del edificio real.
-  'Facultades de Ingeniería': { lat: -2.181166,    lng: -79.904848 },
-  'Facultades de Medicina':    { lat: -2.182557043, lng: -79.905744857 },
-  'Edificio de Posgrados':     { lat: -2.180431595, lng: -79.90472964 },
-  'Clínica Odontológica':      { lat: -2.180018,    lng: -79.904153 },
-
-  // Auditorios
-  'Aula Magna':                { lat: -2.180823, lng: -79.904107 },
-  'Auditorio Leonidas Ortega': { lat: -2.181285, lng: -79.904630 },
-  'Salón de Usos Múltiples':    { lat: -2.182190, lng: -79.904420 },
-  'Salas de Conferencias IT':  { lat: -2.181340, lng: -79.904910 },
-
-  // Deportes y Recreación
-  'Canchas Múltiples':         { lat: -2.183200, lng: -79.905100 },
-  'Cancha de Césped Sintético': { lat: -2.183800, lng: -79.905500 },
-  'Piscina Universitaria':      { lat: -2.183500, lng: -79.905300 },
-  'Gimnasio UCSG':             { lat: -2.183000, lng: -79.905000 },
-
-  // Servicios Estudiantiles
-  'Biblioteca General':        { lat: -2.1822609,   lng: -79.9035173 },
-  'Medios UCSG (Radio/TV)':    { lat: -2.182800,    lng: -79.904600 },
-  'Capilla Universitaria':     { lat: -2.182081296, lng: -79.904356811 },
-  'CoWorking Space':           { lat: -2.181950,    lng: -79.904250 },
-}
 

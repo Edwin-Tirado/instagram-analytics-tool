@@ -35,6 +35,7 @@ ec\ucsg\analytics\application\dto\response\EventSummaryResponse.class
 ec\ucsg\analytics\interfaces\rest\SupervisorController.class
 ec\ucsg\analytics\domain\model\InstagramToken.class
 ec\ucsg\analytics\application\mapper\EventMapperImpl.class
+ec\ucsg\analytics\application\dto\request\CreateZoneRequest.class
 ec\ucsg\analytics\AnalyticsApplication.class
 ec\ucsg\analytics\application\dto\request\UpdateEventRequest.class
 ec\ucsg\analytics\domain\model\AuditLog.class
@@ -89,6 +90,7 @@ ec\ucsg\analytics\domain\model\AppUser.class
 ec\ucsg\analytics\infrastructure\scheduling\InstagramTokenRefreshJob.class
 ec\ucsg\analytics\domain\model\AppRole.class
 ec\ucsg\analytics\infrastructure\security\LoginAttemptService.class
+ec\ucsg\analytics\interfaces\rest\SupervisorZoneController.class
 ec\ucsg\analytics\application\service\EventIngestionService$IngestionOutcome.class
 ec\ucsg\analytics\application\service\ZoneMatchingService.class
 ec\ucsg\analytics\application\mapper\EventMapper.class

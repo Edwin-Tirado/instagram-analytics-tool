@@ -14,14 +14,14 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface EventMapper {
 
-    // Ubicación real del campus Guayaquil de la UCSG — verificada por búsqueda
-    // web (Av. Carlos Julio Arosemena Km 1.5) y consistente con el centroide
-    // de las zonas ya corregidas en V10__fix_original_zone_coordinates.sql.
-    // Respaldo cuando un evento no tiene zona específica asignada, para que
-    // el mapa SIEMPRE muestre algo en vez de quedar oculto/vacío.
-    double DEFAULT_CAMPUS_LATITUDE  = -2.181827;
-    double DEFAULT_CAMPUS_LONGITUDE = -79.904600;
-    String DEFAULT_CAMPUS_NAME      = "Campus UCSG";
+    // Coordenada real de "Campus Universitario" — provista directamente por
+    // el usuario (Location Ucsg.docx) como el respaldo oficial a usar "en
+    // caso de no tener ubicación". También existe como fila real en la
+    // tabla zones (V12__rebuild_zones_from_docx.sql, sin match_keywords a
+    // propósito) para que se pueda elegir manualmente desde el desplegable.
+    double DEFAULT_CAMPUS_LATITUDE  = -2.181773084;
+    double DEFAULT_CAMPUS_LONGITUDE = -79.904362193;
+    String DEFAULT_CAMPUS_NAME      = "Campus Universitario";
 
     // ── EventResponse (detalle completo) ────────────────────────────
 

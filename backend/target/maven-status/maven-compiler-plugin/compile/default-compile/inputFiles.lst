@@ -1,5 +1,6 @@
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\AnalyticsApplication.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\request\ApprovalRequest.java
+C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\request\CreateZoneRequest.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\request\LoginRequest.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\request\RegisterRequest.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\request\ReminderRequest.java
@@ -74,3 +75,4 @@ C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\anal
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\rest\MailTestController.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\rest\ReminderController.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\rest\SupervisorController.java
+C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\rest\SupervisorZoneController.java

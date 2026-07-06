@@ -9,7 +9,7 @@ import {
   adminGetUsers, adminToggleLock, adminToggleEnabled, adminChangeRole,
   supervisorApproveEvent, supervisorRejectEvent, supervisorGetEvents,
   supervisorUpdateEvent, supervisorDeleteEvent,
-  getZones,
+  getZones, createZone,
 } from '@/lib/api'
 import { getStoredUser } from '@/lib/auth'
 import { useInstagramSync } from '@/lib/useInstagramSync'
@@ -53,6 +53,12 @@ function EventsTab() {
   const [editTarget, setEditTarget]       = useState<AdminEvent | null>(null)
   const [editForm, setEditForm]           = useState({ title: '', eventDate: '', zoneId: 0, locationText: '' })
   const [zones, setZones]                 = useState<Zone[]>([])
+
+  // ── Agregar nueva ubicación (desde el modal de Editar) ───────────────────────
+  const [addingZone, setAddingZone]     = useState(false)
+  const [newZoneForm, setNewZoneForm]   = useState({ name: '', lat: '', lng: '' })
+  const [newZoneError, setNewZoneError] = useState<string | null>(null)
+  const [creatingZone, setCreatingZone] = useState(false)
 
   // ── Roles del usuario autenticado ────────────────────────────────────────────
   const [userRoles, setUserRoles] = useState<string[]>([])
@@ -123,6 +129,29 @@ function EventsTab() {
       zoneId:       ev.zone?.id ?? 0,
       locationText: ev.locationText ?? '',
     })
+    setAddingZone(false)
+    setNewZoneForm({ name: '', lat: '', lng: '' })
+    setNewZoneError(null)
+  }
+
+  async function handleCreateZone() {
+    const lat = Number(newZoneForm.lat)
+    const lng = Number(newZoneForm.lng)
+    if (!newZoneForm.name.trim()) { setNewZoneError('El nombre es obligatorio'); return }
+    if (Number.isNaN(lat) || Number.isNaN(lng)) { setNewZoneError('Latitud/longitud inválidas'); return }
+
+    setCreatingZone(true); setNewZoneError(null)
+    try {
+      const zone = await createZone({ name: newZoneForm.name.trim(), latitude: lat, longitude: lng })
+      setZones(prev => [...prev, zone])
+      setEditForm(f => ({ ...f, zoneId: zone.id, locationText: zone.name }))
+      setAddingZone(false)
+      setNewZoneForm({ name: '', lat: '', lng: '' })
+    } catch (e: any) {
+      setNewZoneError(e.message ?? 'No se pudo crear la ubicación')
+    } finally {
+      setCreatingZone(false)
+    }
   }
 
   async function handleEditSave() {
@@ -366,22 +395,72 @@ function EventsTab() {
               </div>
               <div>
                 <label className="text-xs font-semibold text-[#7a6652] uppercase tracking-wide">Lugar (Zona del campus)</label>
-                <select
-                  value={editForm.zoneId}
-                  onChange={e => {
-                    const zoneId = Number(e.target.value)
-                    const zone = zones.find(z => z.id === zoneId)
-                    // Al cambiar de zona, "Ubicación adicional" parte del nombre
-                    // de la zona elegida — el usuario la sigue editando desde ahí.
-                    setEditForm(f => ({ ...f, zoneId, locationText: zone?.name ?? '' }))
-                  }}
-                  className="w-full mt-1 border border-[#e8ddd4] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#931934] bg-white text-[#2d1b0e]"
-                >
-                  <option value={0}>-- Selecciona una zona --</option>
-                  {zones.map(z => (
-                    <option key={z.id} value={z.id}>{z.name}</option>
-                  ))}
-                </select>
+                {!addingZone ? (
+                  <select
+                    value={editForm.zoneId}
+                    onChange={e => {
+                      if (e.target.value === 'NEW') { setAddingZone(true); return }
+                      const zoneId = Number(e.target.value)
+                      const zone = zones.find(z => z.id === zoneId)
+                      // Al cambiar de zona, "Ubicación adicional" parte del nombre
+                      // de la zona elegida — el usuario la sigue editando desde ahí.
+                      setEditForm(f => ({ ...f, zoneId, locationText: zone?.name ?? '' }))
+                    }}
+                    className="w-full mt-1 border border-[#e8ddd4] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#931934] bg-white text-[#2d1b0e]"
+                  >
+                    <option value={0}>-- Selecciona una zona --</option>
+                    {zones.map(z => (
+                      <option key={z.id} value={z.id}>{z.name}</option>
+                    ))}
+                    <option value="NEW">+ Agregar nueva ubicación…</option>
+                  </select>
+                ) : (
+                  <div className="mt-1 border border-[#e8ddd4] rounded-lg p-3 space-y-2 bg-[#fdfaf7]">
+                    <input
+                      type="text"
+                      value={newZoneForm.name}
+                      onChange={e => setNewZoneForm(f => ({ ...f, name: e.target.value }))}
+                      placeholder="Nombre de la ubicación"
+                      className="w-full border border-[#e8ddd4] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#931934]"
+                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={newZoneForm.lat}
+                        onChange={e => setNewZoneForm(f => ({ ...f, lat: e.target.value }))}
+                        placeholder="Latitud (ej. -2.181773)"
+                        className="w-full border border-[#e8ddd4] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#931934]"
+                      />
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={newZoneForm.lng}
+                        onChange={e => setNewZoneForm(f => ({ ...f, lng: e.target.value }))}
+                        placeholder="Longitud (ej. -79.904362)"
+                        className="w-full border border-[#e8ddd4] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#931934]"
+                      />
+                    </div>
+                    {newZoneError && <p className="text-xs text-red-600">{newZoneError}</p>}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setAddingZone(false); setNewZoneError(null) }}
+                        className="flex-1 border border-[#e8ddd4] rounded-lg py-1.5 text-xs font-semibold text-[#7a6652] hover:border-[#931934] transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCreateZone}
+                        disabled={creatingZone}
+                        className="flex-1 bg-[#931934] text-white rounded-lg py-1.5 text-xs font-semibold hover:bg-[#7a1528] disabled:opacity-60 transition-colors"
+                      >
+                        {creatingZone ? 'Creando…' : 'Crear ubicación'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="text-xs font-semibold text-[#7a6652] uppercase tracking-wide">Ubicación adicional <span className="text-[#b89f90] normal-case">(opcional)</span></label>

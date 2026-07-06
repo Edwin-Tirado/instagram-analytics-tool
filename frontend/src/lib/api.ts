@@ -135,6 +135,14 @@ export async function getZones(): Promise<Zone[]> {
   return apiFetch<Zone[]>('/api/public/zones')
 }
 
+/** Crea una nueva ubicación (zona) del campus — SUPERVISOR o ADMIN. */
+export async function createZone(body: { name: string; latitude: number; longitude: number }): Promise<Zone> {
+  return apiFetch<Zone>('/api/supervisor/zones', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
+
 // ── Recordatorios (requieren JWT) ────────────────────────────────────────────
 
 export async function getMyReminders(): Promise<ReminderRemoteResponse[]> {

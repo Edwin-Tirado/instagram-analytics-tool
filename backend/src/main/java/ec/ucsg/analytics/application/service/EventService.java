@@ -1,5 +1,6 @@
 package ec.ucsg.analytics.application.service;
 
+import ec.ucsg.analytics.application.dto.request.CreateZoneRequest;
 import ec.ucsg.analytics.application.dto.request.UpdateEventRequest;
 import ec.ucsg.analytics.application.dto.response.EventResponse;
 import ec.ucsg.analytics.application.dto.response.EventSummaryResponse;
@@ -18,6 +19,9 @@ import ec.ucsg.analytics.domain.repository.ZoneRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -62,6 +66,32 @@ public class EventService {
         return zoneRepository.findAll().stream()
             .map(this::toZoneResponse)
             .toList();
+    }
+
+    /**
+     * Crea una nueva ubicación (zona) del campus — usada desde "Editar evento"
+     * cuando el supervisor/admin necesita agregar un lugar que todavía no
+     * existe. Aparece de inmediato en el selector de zonas y en el footer
+     * público (ambos leen /api/public/zones en vivo).
+     */
+    @Transactional
+    public ZoneResponse createZone(CreateZoneRequest request) {
+        String name = request.name().trim();
+        if (zoneRepository.findByNameIgnoreCase(name).isPresent()) {
+            throw new IllegalStateException("Ya existe una ubicación con ese nombre: " + name);
+        }
+
+        GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
+        Coordinate coordinate = new Coordinate(request.longitude(), request.latitude());
+
+        Zone zone = Zone.builder()
+            .name(name)
+            .location(geometryFactory.createPoint(coordinate))
+            .build();
+
+        Zone saved = zoneRepository.save(zone);
+        log.info("Nueva ubicación creada: '{}' ({}, {})", name, request.latitude(), request.longitude());
+        return toZoneResponse(saved);
     }
 
     // ── Endpoints del administrador (todos los eventos) ─────────────

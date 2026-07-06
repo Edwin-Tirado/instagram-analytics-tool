@@ -1,3 +1,5 @@
 {
+  "/admin/dashboard/page": "app/admin/dashboard/page.js",
+  "/supervisor/logs/page": "app/supervisor/logs/page.js",
   "/page": "app/page.js"
 }

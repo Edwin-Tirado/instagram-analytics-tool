@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import CategoryFilter from '@/components/CategoryFilter'
@@ -9,11 +9,30 @@ import Footer from '@/components/Footer'
 import HeroCarousel from '@/components/HeroCarousel'
 import Navbar from '@/components/Navbar'
 import Toast from '@/components/Toast'
-import { getEvents, addReminder, deleteReminder, getMyReminders } from '@/lib/api'
+import { getEvents, getZones, addReminder, deleteReminder, getMyReminders } from '@/lib/api'
 import { isAuthenticated } from '@/lib/auth'
 import { toUIEvent } from '@/lib/eventUtils'
-import { MOCK_EVENTS, HERO_SLIDES, FOOTER_COLS, CATEGORIES, FACILITY_COORDINATES } from '@/lib/mockData'
-import { EventSummary, ReminderMinutes, UIEvent } from '@/types'
+import { MOCK_EVENTS, HERO_SLIDES, CATEGORIES } from '@/lib/mockData'
+import { EventSummary, ReminderMinutes, UIEvent, Zone } from '@/types'
+
+// Nombre de la zona genérica de respaldo (V12__rebuild_zones_from_docx.sql) —
+// no es una instalación real que valga la pena mostrar como link del footer.
+const GENERIC_ZONE_NAME = 'Campus Universitario'
+
+/** Reparte los nombres de zonas en columnas alfabéticas para el footer. */
+function splitIntoColumns(names: string[], numCols: number) {
+  const sorted = [...names].sort((a, b) => a.localeCompare(b, 'es'))
+  const perCol = Math.ceil(sorted.length / numCols) || 1
+  const columns: { title: string; items: string[] }[] = []
+  for (let i = 0; i < numCols; i++) {
+    const slice = sorted.slice(i * perCol, (i + 1) * perCol)
+    if (slice.length === 0) continue
+    const first = slice[0][0]?.toUpperCase() ?? ''
+    const last  = slice[slice.length - 1][0]?.toUpperCase() ?? ''
+    columns.push({ title: first === last ? first : `${first} – ${last}`, items: slice })
+  }
+  return columns
+}
 
 // Cargas dinámicas para evitar que Leaflet intente ejecutarse en SSR
 const EventModal = dynamic(() => import('@/components/EventModal'), { ssr: false })
@@ -49,6 +68,18 @@ export default function HomePage() {
   const [toast, setToast]               = useState(false)
   const [toastMsg, setToastMsg]         = useState('✅ Guardado en tus recordatorios')
   const [activeMapFacility, setActiveMapFacility] = useState<{ title: string; lat: number; lng: number } | null>(null)
+  const [zones, setZones]               = useState<Zone[]>([])
+
+  // Zonas del footer — en vivo desde el backend, así que cualquier ubicación
+  // nueva que se agregue desde "Editar evento" aparece acá automáticamente.
+  useEffect(() => {
+    getZones().then(setZones).catch(() => {})
+  }, [])
+
+  const footerColumns = useMemo(() => {
+    const names = zones.map(z => z.name).filter(name => name !== GENERIC_ZONE_NAME)
+    return splitIntoColumns(names, 4)
+  }, [zones])
 
   // Evita hydration mismatch: isAuthenticated() lee localStorage, que no existe en SSR.
   // Se evalúa únicamente en el cliente, tras el montaje del componente.
@@ -133,15 +164,15 @@ export default function HomePage() {
   )
 
   const handleOpenFacilityMap = useCallback((item: string) => {
-    const coords = FACILITY_COORDINATES[item]
-    if (coords) {
+    const zone = zones.find(z => z.name === item)
+    if (zone?.latitude != null && zone?.longitude != null) {
       setActiveMapFacility({
         title: item,
-        lat: coords.lat,
-        lng: coords.lng,
+        lat: zone.latitude,
+        lng: zone.longitude,
       })
     }
-  }, [])
+  }, [zones])
 
   const countLabel = filtered.length === 1 ? '1 evento' : `${filtered.length} eventos`
 
@@ -202,7 +233,7 @@ export default function HomePage() {
         )}
       </main>
 
-      <Footer columns={FOOTER_COLS} onItemClick={handleOpenFacilityMap} />
+      <Footer columns={footerColumns} onItemClick={handleOpenFacilityMap} />
 
       {/* Modal */}
       {selectedEvent && (
