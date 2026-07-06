@@ -1250,6 +1250,9 @@ video {
   --tw-border-opacity: 1;
   border-color: rgb(58 50 45 / var(--tw-border-opacity, 1));
 }
+.border-\[\#931934\]\/30 {
+  border-color: rgb(147 25 52 / 0.3);
+}
 .border-\[\#e8ddd4\] {
   --tw-border-opacity: 1;
   border-color: rgb(232 221 212 / var(--tw-border-opacity, 1));
@@ -1308,6 +1311,10 @@ video {
 }
 .border-white\/80 {
   border-color: rgb(255 255 255 / 0.8);
+}
+.border-t-\[\#931934\] {
+  --tw-border-opacity: 1;
+  border-top-color: rgb(147 25 52 / var(--tw-border-opacity, 1));
 }
 .border-t-white {
   --tw-border-opacity: 1;

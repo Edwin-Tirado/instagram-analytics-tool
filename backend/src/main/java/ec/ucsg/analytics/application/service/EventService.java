@@ -4,6 +4,7 @@ import ec.ucsg.analytics.application.dto.request.CreateZoneRequest;
 import ec.ucsg.analytics.application.dto.request.UpdateEventRequest;
 import ec.ucsg.analytics.application.dto.response.EventResponse;
 import ec.ucsg.analytics.application.dto.response.EventSummaryResponse;
+import ec.ucsg.analytics.application.dto.response.ZoneRematchResponse;
 import ec.ucsg.analytics.application.dto.response.ZoneResponse;
 import ec.ucsg.analytics.application.mapper.EventMapper;
 import ec.ucsg.analytics.domain.enums.AuditAction;
@@ -42,6 +43,7 @@ public class EventService {
     private final EventMapper                eventMapper;
     private final AuditLogRepository         auditLogRepository;
     private final EventApprovalNotifier      eventApprovalNotifier;
+    private final ZoneMatchingService        zoneMatchingService;
 
     // ── Endpoints públicos (mapa) ────────────────────────────────────
 
@@ -92,6 +94,37 @@ public class EventService {
         Zone saved = zoneRepository.save(zone);
         log.info("Nueva ubicación creada: '{}' ({}, {})", name, request.latitude(), request.longitude());
         return toZoneResponse(saved);
+    }
+
+    /**
+     * Re-emparejar eventos sin zona contra el caption ya guardado —
+     * necesario después de reemplazar/reconstruir el catálogo de zonas
+     * (ej. V12__rebuild_zones_from_docx.sql), ya que el DELETE de las zonas
+     * anteriores deja zone_id en null en cualquier evento que las usara
+     * (ON DELETE SET NULL). No vuelve a llamar a Instagram — solo reprocesa
+     * el texto que ya está en la base de datos contra las zonas actuales.
+     */
+    @Transactional
+    public ZoneRematchResponse rematchZones() {
+        List<Event> candidates = eventRepository.findAll().stream()
+            .filter(e -> e.getZone() == null && e.getCaption() != null && !e.getCaption().isBlank())
+            .toList();
+
+        int matched = 0;
+        for (Event event : candidates) {
+            var zone = zoneMatchingService.findBestMatch(event.getCaption());
+            if (zone.isPresent()) {
+                event.setZone(zone.get());
+                if (event.getLocationText() == null || event.getLocationText().isBlank()) {
+                    event.setLocationText(zone.get().getName());
+                }
+                eventRepository.save(event);
+                matched++;
+            }
+        }
+
+        log.info("Re-matching de zonas: {} de {} eventos sin zona ahora tienen una asignada", matched, candidates.size());
+        return new ZoneRematchResponse(matched, candidates.size());
     }
 
     // ── Endpoints del administrador (todos los eventos) ─────────────

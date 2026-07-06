@@ -95,5 +95,6 @@ ec\ucsg\analytics\application\service\EventIngestionService$IngestionOutcome.cla
 ec\ucsg\analytics\application\service\ZoneMatchingService.class
 ec\ucsg\analytics\application\mapper\EventMapper.class
 ec\ucsg\analytics\interfaces\exception\GlobalExceptionHandler.class
+ec\ucsg\analytics\application\dto\response\ZoneRematchResponse.class
 ec\ucsg\analytics\application\dto\response\EventResponse$ReviewInfo.class
 ec\ucsg\analytics\infrastructure\instagram\CaptionParser.class

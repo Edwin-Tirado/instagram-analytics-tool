@@ -4,6 +4,7 @@ import ec.ucsg.analytics.application.dto.request.ApprovalRequest;
 import ec.ucsg.analytics.application.dto.request.UpdateEventRequest;
 import ec.ucsg.analytics.application.dto.response.EventResponse;
 import ec.ucsg.analytics.application.dto.response.PageResponse;
+import ec.ucsg.analytics.application.dto.response.ZoneRematchResponse;
 import ec.ucsg.analytics.application.service.EventService;
 import ec.ucsg.analytics.domain.enums.EventStatus;
 import jakarta.validation.Valid;
@@ -95,5 +96,15 @@ public class AdminEventController {
 
         String reason = (request != null) ? request.reason() : null;
         return ResponseEntity.ok(eventService.rejectEvent(id, reason, principal.getUsername()));
+    }
+
+    /**
+     * Reintenta asignar zona a los eventos que quedaron sin ninguna —
+     * usar después de reemplazar el catálogo de zonas (no vuelve a
+     * llamar a Instagram, solo reprocesa el caption ya guardado).
+     */
+    @PostMapping("/rematch-zones")
+    public ResponseEntity<ZoneRematchResponse> rematchZones() {
+        return ResponseEntity.ok(eventService.rematchZones());
     }
 }

@@ -9,7 +9,7 @@ import {
   adminGetUsers, adminToggleLock, adminToggleEnabled, adminChangeRole,
   supervisorApproveEvent, supervisorRejectEvent, supervisorGetEvents,
   supervisorUpdateEvent, supervisorDeleteEvent,
-  getZones, createZone,
+  getZones, createZone, adminRematchZones,
 } from '@/lib/api'
 import { getStoredUser } from '@/lib/auth'
 import { useInstagramSync } from '@/lib/useInstagramSync'
@@ -191,6 +191,22 @@ function EventsTab() {
     load(0, filter); setPage(0)
   })
 
+  const [rematching, setRematching]     = useState(false)
+  const [rematchMsg, setRematchMsg]     = useState<string | null>(null)
+
+  async function handleRematchZones() {
+    setRematching(true); setRematchMsg(null); setError(null)
+    try {
+      const result = await adminRematchZones()
+      setRematchMsg(`Zonas reasignadas: ${result.matched} de ${result.candidates} eventos sin zona.`)
+      load(page, filter)
+    } catch (e: any) {
+      setError(e.message ?? 'No se pudo re-emparejar las zonas')
+    } finally {
+      setRematching(false)
+    }
+  }
+
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
   return (
@@ -203,15 +219,25 @@ function EventsTab() {
             </h1>
             <p className="text-sm text-[#7a6652] mt-0.5">{total} evento{total !== 1 ? 's' : ''} en total</p>
           </div>
-          {/* Sincronizar solo para ADMIN */}
+          {/* Sincronizar y re-emparejar zonas — solo para ADMIN */}
           {isAdmin && (
-            <button
-              onClick={triggerSync} disabled={syncing}
-              className="flex items-center gap-2 bg-[#931934] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#7a1528] disabled:opacity-60 transition-colors"
-            >
-              {syncing ? <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : '🔄'}
-              {syncing ? 'Sincronizando…' : 'Sincronizar Instagram'}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRematchZones} disabled={rematching}
+                title="Reintenta asignar zona a los eventos sin ninguna, usando el caption ya guardado (no llama a Instagram)"
+                className="flex items-center gap-2 bg-white border border-[#e8ddd4] text-[#7a6652] px-4 py-2 rounded-lg text-sm font-semibold hover:border-[#931934] hover:text-[#931934] disabled:opacity-60 transition-colors"
+              >
+                {rematching ? <span className="inline-block w-4 h-4 border-2 border-[#931934]/30 border-t-[#931934] rounded-full animate-spin" /> : '📍'}
+                {rematching ? 'Re-emparejando…' : 'Re-emparejar zonas'}
+              </button>
+              <button
+                onClick={triggerSync} disabled={syncing}
+                className="flex items-center gap-2 bg-[#931934] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#7a1528] disabled:opacity-60 transition-colors"
+              >
+                {syncing ? <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : '🔄'}
+                {syncing ? 'Sincronizando…' : 'Sincronizar Instagram'}
+              </button>
+            </div>
           )}
           {/* Indicador de rol para supervisor */}
           {isSupervisor && !isAdmin && (
@@ -222,6 +248,7 @@ function EventsTab() {
         </div>
 
         {syncMsg && <div className="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg">✅ {syncMsg}</div>}
+        {rematchMsg && <div className="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg">✅ {rematchMsg}</div>}
         {(error || syncError) && <div className="bg-red-50 border border-red-200 text-red-800 text-sm px-4 py-3 rounded-lg">{error || syncError}</div>}
 
         <div className="flex gap-2">

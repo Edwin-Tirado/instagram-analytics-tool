@@ -201,6 +201,15 @@ export async function adminGetIngestionRun(id: string): Promise<IngestionRun> {
   return apiFetch<IngestionRun>(`/api/admin/ingestion/runs/${id}`)
 }
 
+/**
+ * Reintenta asignar zona a los eventos sin ninguna, usando el caption ya
+ * guardado — no vuelve a llamar a Instagram. Útil después de reemplazar
+ * el catálogo de zonas.
+ */
+export async function adminRematchZones(): Promise<{ matched: number; candidates: number }> {
+  return apiFetch<{ matched: number; candidates: number }>('/api/admin/events/rematch-zones', { method: 'POST' })
+}
+
 // ── Supervisor: gestión y revisión de eventos ────────────────────────────────────
 
 export async function getIngestionRuns(page = 0, size = 20): Promise<IngestionRunPage> {

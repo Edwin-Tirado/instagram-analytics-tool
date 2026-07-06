@@ -12,6 +12,7 @@ C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\anal
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\response\IngestionRunResponse.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\response\PageResponse.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\response\ReminderResponse.java
+C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\response\ZoneRematchResponse.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\response\ZoneResponse.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\mapper\EventMapper.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\service\AuthService.java
