@@ -10,6 +10,7 @@ import {
   supervisorApproveEvent, supervisorRejectEvent, supervisorGetEvents,
   supervisorUpdateEvent, supervisorDeleteEvent,
   getZones, createZone, adminRematchZones,
+  getInstagramTokenStatus, updateInstagramToken, InstagramTokenStatus,
 } from '@/lib/api'
 import { getStoredUser } from '@/lib/auth'
 import { useInstagramSync } from '@/lib/useInstagramSync'
@@ -742,6 +743,103 @@ function UsersTab() {
   )
 }
 
+// ── Tab Instagram ────────────────────────────────────────────────────────────
+
+function InstagramTab() {
+  const [status, setStatus]   = useState<InstagramTokenStatus | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [tokenInput, setTokenInput] = useState('')
+  const [saving, setSaving]   = useState(false)
+  const [msg, setMsg]         = useState<string | null>(null)
+  const [error, setError]     = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      setStatus(await getInstagramTokenStatus())
+    } catch (e: any) {
+      setError(e.message ?? 'No se pudo obtener el estado del token')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  async function handleSave() {
+    if (!tokenInput.trim()) return
+    setSaving(true); setMsg(null); setError(null)
+    try {
+      const updated = await updateInstagramToken(tokenInput.trim())
+      setStatus(updated)
+      setTokenInput('')
+      setMsg('✅ Token actualizado correctamente.')
+    } catch (e: any) {
+      setError(e.message ?? 'No se pudo guardar el token')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      <div>
+        <h1 className="text-2xl font-bold text-[#2d1b0e]">Configuración de Instagram</h1>
+        <p className="text-sm text-[#7a6652] mt-0.5">
+          Access-token usado para sincronizar publicaciones de @ucsgnotificaciones.
+        </p>
+      </div>
+
+      <div className="bg-white border border-[#e8ddd4] rounded-xl p-6 space-y-4">
+        <div>
+          <div className="text-xs font-semibold text-[#7a6652] uppercase tracking-wide mb-1">Estado actual</div>
+          {loading ? (
+            <span className="text-sm text-[#7a6652]">Cargando…</span>
+          ) : status?.configured ? (
+            <div className="text-sm text-[#2d1b0e]">
+              <span className="font-mono bg-[#f9f6f1] px-2 py-1 rounded">{status.maskedToken}</span>
+              {status.updatedAt && (
+                <span className="text-xs text-[#7a6652] ml-2">
+                  actualizado {new Date(status.updatedAt).toLocaleString('es-EC')}
+                </span>
+              )}
+            </div>
+          ) : (
+            <span className="text-sm text-yellow-700">⚠️ No hay ningún token configurado todavía.</span>
+          )}
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold text-[#7a6652] uppercase tracking-wide">
+            Nuevo access token
+          </label>
+          <textarea
+            value={tokenInput}
+            onChange={e => setTokenInput(e.target.value)}
+            placeholder="Pega aquí el token generado en developers.facebook.com → Instagram → Generar identificador"
+            rows={3}
+            className="mt-1 w-full border border-[#e8ddd4] rounded-lg px-3 py-2 text-sm font-mono resize-none focus:outline-none focus:border-[#931934]"
+          />
+          <p className="text-xs text-[#7a6652] mt-1">
+            Solo se guarda en la base de datos de esta app — no se comparte con nadie más.
+          </p>
+        </div>
+
+        {msg && <div className="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg">{msg}</div>}
+        {error && <div className="bg-red-50 border border-red-200 text-red-800 text-sm px-4 py-3 rounded-lg">{error}</div>}
+
+        <button
+          onClick={handleSave}
+          disabled={saving || !tokenInput.trim()}
+          className="bg-[#931934] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#7a1528] disabled:opacity-60 transition-colors"
+        >
+          {saving ? 'Guardando…' : 'Guardar token'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Página principal ──────────────────────────────────────────────────────────
 
 export default function AdminDashboardPage() {
@@ -750,7 +848,7 @@ export default function AdminDashboardPage() {
 
   return (
     <AdminLayout>
-      {tab === 'users' ? <UsersTab /> : <EventsTab />}
+      {tab === 'users' ? <UsersTab /> : tab === 'instagram' ? <InstagramTab /> : <EventsTab />}
     </AdminLayout>
   )
 }

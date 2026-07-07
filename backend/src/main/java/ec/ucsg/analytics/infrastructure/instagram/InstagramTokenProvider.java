@@ -54,6 +54,27 @@ public class InstagramTokenProvider {
             .orElseGet(this::seedFromConfig);
     }
 
+    /** Estado actual del token (para mostrarlo, enmascarado, en el panel de admin). */
+    @Transactional(readOnly = true)
+    public InstagramToken getStatus() {
+        return tokenRepository.findById(TOKEN_ROW_ID).orElse(null);
+    }
+
+    /**
+     * Reemplaza el token manualmente (pegado por un admin desde el dashboard
+     * de Meta) — no hace ninguna llamada externa, solo persiste el valor.
+     */
+    @Transactional
+    public void updateToken(String newAccessToken) {
+        InstagramToken token = tokenRepository.findById(TOKEN_ROW_ID)
+            .orElseGet(() -> InstagramToken.builder().id(TOKEN_ROW_ID).build());
+        token.setAccessToken(newAccessToken);
+        token.setExpiresAt(null);
+        token.setUpdatedAt(LocalDateTime.now());
+        tokenRepository.save(token);
+        log.info("Token de Instagram actualizado manualmente desde el panel de admin");
+    }
+
     private String seedFromConfig() {
         tokenRepository.save(
             InstagramToken.builder()

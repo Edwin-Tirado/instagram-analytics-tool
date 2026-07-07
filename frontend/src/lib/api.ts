@@ -210,6 +210,26 @@ export async function adminRematchZones(): Promise<{ matched: number; candidates
   return apiFetch<{ matched: number; candidates: number }>('/api/admin/events/rematch-zones', { method: 'POST' })
 }
 
+export interface InstagramTokenStatus {
+  configured: boolean
+  maskedToken: string | null
+  updatedAt: string | null
+  expiresAt: string | null
+}
+
+/** Estado (enmascarado) del access-token de Instagram vigente — ADMIN. */
+export async function getInstagramTokenStatus(): Promise<InstagramTokenStatus> {
+  return apiFetch<InstagramTokenStatus>('/api/admin/instagram/token')
+}
+
+/** Reemplaza manualmente el access-token de Instagram — ADMIN. */
+export async function updateInstagramToken(accessToken: string): Promise<InstagramTokenStatus> {
+  return apiFetch<InstagramTokenStatus>('/api/admin/instagram/token', {
+    method: 'PUT',
+    body: JSON.stringify({ accessToken }),
+  })
+}
+
 // ── Supervisor: gestión y revisión de eventos ────────────────────────────────────
 
 export async function getIngestionRuns(page = 0, size = 20): Promise<IngestionRunPage> {
