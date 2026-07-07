@@ -45,7 +45,13 @@ public class ReminderService {
                 .minutesBefore(request.minutesBefore())
                 .build();
 
-            Reminder saved = reminderRepository.save(reminder);
+            // saveAndFlush (no save): fuerza el INSERT ya mismo, dentro de este
+            // try/catch. Con save() a secas, Hibernate difiere el flush hasta
+            // el commit de la transacción — para entonces ya salimos del
+            // try/catch, y la violación de la constraint única (mismo
+            // usuario+evento+minutos) se escapa como un 500 genérico en vez
+            // del 409 con mensaje amigable que se maneja abajo.
+            Reminder saved = reminderRepository.saveAndFlush(reminder);
             log.info("Recordatorio creado: evento='{}', usuario={}, minutos={}",
                 event.getTitle(), userEmail, request.minutesBefore());
 

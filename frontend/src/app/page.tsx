@@ -144,20 +144,28 @@ export default function HomePage() {
 
       if (isActive) {
         const rid = reminderMap.get(selectedId)
-        if (rid) {
-          await deleteReminder(rid).catch(() => null)
+        if (!rid) return
+        try {
+          await deleteReminder(rid)
           setReminderMap((m) => { const n = new Map(m); n.delete(selectedId); return n })
+          setReminders((prev) => { const n = new Set(prev); n.delete(selectedId); return n })
+          showToast('🗑️ Recordatorio eliminado')
+        } catch (e: any) {
+          // Antes esto se tragaba el error y el toast decía "eliminado" igual,
+          // aunque el backend lo hubiera rechazado.
+          showToast(`⚠️ ${e.message ?? 'No se pudo eliminar el recordatorio'}`)
         }
-        setReminders((prev) => { const n = new Set(prev); n.delete(selectedId); return n })
-        showToast('🗑️ Recordatorio eliminado')
       } else {
-        const res = await addReminder({ eventId: selectedId, minutesBefore: minutes })
-          .catch(() => null)
-        if (res) {
+        try {
+          const res = await addReminder({ eventId: selectedId, minutesBefore: minutes })
           setReminderMap((m) => new Map(m).set(selectedId, res.id))
+          setReminders((prev) => new Set(prev).add(selectedId))
+          showToast('✅ Guardado en tus recordatorios')
+        } catch (e: any) {
+          // Antes esto se tragaba el error (ej. 409 por duplicado, o evento ya
+          // finalizado) y el toast decía "Guardado" igual, mintiéndole al usuario.
+          showToast(`⚠️ ${e.message ?? 'No se pudo guardar el recordatorio'}`)
         }
-        setReminders((prev) => new Set(prev).add(selectedId))
-        showToast('✅ Guardado en tus recordatorios')
       }
     },
     [selectedId, reminders, reminderMap],
