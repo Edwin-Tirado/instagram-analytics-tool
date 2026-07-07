@@ -292,6 +292,17 @@ function EventsTab() {
               ),
             },
             {
+              header: 'Lugar',
+              accessor: (ev) => (
+                <div className="max-w-[200px]">
+                  <div className="text-[#2d1b0e] line-clamp-1">{ev.zone?.name ?? 'Campus Universitario'}</div>
+                  {ev.locationText && (
+                    <div className="text-xs text-[#7a6652] line-clamp-1">{ev.locationText}</div>
+                  )}
+                </div>
+              ),
+            },
+            {
               header: 'Estado',
               accessor: (ev) => (
                 <span

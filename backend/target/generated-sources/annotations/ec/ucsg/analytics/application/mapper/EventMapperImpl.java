@@ -10,8 +10,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-07-06T20:14:54-0500",
-    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.46.100.v20260624-0231, environment: Java 21.0.11 (Eclipse Adoptium)"
+    date = "2026-07-07T08:01:18-0500",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 17.0.12 (Oracle Corporation)"
 )
 @Component
 public class EventMapperImpl implements EventMapper {
@@ -60,9 +60,11 @@ public class EventMapperImpl implements EventMapper {
 
         String title = null;
         LocalDateTime eventDate = null;
+        String locationText = null;
 
         title = event.getTitle();
         eventDate = event.getEventDate();
+        locationText = event.getLocationText();
 
         String id = event.getId().toString();
         String status = event.getStatus().name();
@@ -71,7 +73,7 @@ public class EventMapperImpl implements EventMapper {
         Double longitude = extractLongitude(event.getZone());
         String thumbnailUrl = extractThumbnail(event);
 
-        EventSummaryResponse eventSummaryResponse = new EventSummaryResponse( id, title, status, eventDate, zoneName, latitude, longitude, thumbnailUrl );
+        EventSummaryResponse eventSummaryResponse = new EventSummaryResponse( id, title, status, eventDate, zoneName, locationText, latitude, longitude, thumbnailUrl );
 
         return eventSummaryResponse;
     }

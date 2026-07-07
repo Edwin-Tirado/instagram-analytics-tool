@@ -29,6 +29,13 @@ export function toUIEvent(ev: EventSummary, reminded: boolean): UIEvent {
   const lng = ev.zone?.longitude ?? ev.longitude
   const coordinates = lat != null && lng != null ? { lat, lng } : undefined
 
+  // El nombre de la zona SIEMPRE se muestra — locationText es un dato
+  // adicional que se agrega, no que reemplaza (antes locationText pisaba
+  // el nombre del edificio por completo, así que agregar una observación
+  // como "Piso 1" hacía "desaparecer" la zona en vez de acompañarla).
+  const zoneName = ev.zone?.name ?? ev.zoneName ?? 'Campus Universitario'
+  const location = ev.locationText ? `${zoneName} — ${ev.locationText}` : zoneName
+
   return {
     id:        ev.id,
     title:     ev.title,
@@ -37,7 +44,7 @@ export function toUIEvent(ev: EventSummary, reminded: boolean): UIEvent {
     day,
     time,
     fullDate,
-    location:  ev.locationText ?? ev.zone?.name ?? ev.zoneName ?? 'Campus UCSG',
+    location,
     short,
     full:      cleaned,
     imageUrl:  ev.images?.[0]?.mediaUrl ?? ev.thumbnailUrl ?? null,

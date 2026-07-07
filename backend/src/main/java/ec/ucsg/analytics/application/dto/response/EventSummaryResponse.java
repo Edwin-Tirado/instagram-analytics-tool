@@ -12,6 +12,7 @@ public record EventSummaryResponse(
     String        status,
     LocalDateTime eventDate,
     String        zoneName,
+    String        locationText,   // ej. "Piso 1" — se agrega al nombre de la zona, no lo reemplaza
     Double        latitude,
     Double        longitude,
     String        thumbnailUrl    // primera imagen del carrusel
