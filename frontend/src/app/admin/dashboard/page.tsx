@@ -288,9 +288,17 @@ function EventsTab() {
             },
             {
               header: 'Fecha',
-              accessor: (ev) => (
-                <span className="text-[#7a6652]">{formatDate(ev.eventDate)}</span>
-              ),
+              accessor: (ev) => {
+                const isPast = ev.eventDate ? new Date(ev.eventDate).getTime() < Date.now() : false
+                return (
+                  <div>
+                    <span className="text-[#7a6652]">{formatDate(ev.eventDate)}</span>
+                    {isPast && (
+                      <div className="text-xs text-yellow-700 font-semibold mt-0.5">⚠️ Ya pasó</div>
+                    )}
+                  </div>
+                )
+              },
             },
             {
               header: 'Lugar',

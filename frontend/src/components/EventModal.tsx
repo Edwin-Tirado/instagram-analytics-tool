@@ -60,13 +60,20 @@ export default function EventModal({ event, onClose, onToggleReminder }: EventMo
           </button>
 
           {/* Category tag */}
-          <span className="
-            absolute bottom-4 left-[26px] text-[0.7rem] font-bold text-white
-            bg-ucsg-crimson px-[13px] py-[6px] rounded-[20px]
-            uppercase tracking-[1px]
-          ">
-            {event.tag}
-          </span>
+          <div className="absolute bottom-4 left-[26px] flex items-center gap-2">
+            <span className="
+              text-[0.7rem] font-bold text-white
+              bg-ucsg-crimson px-[13px] py-[6px] rounded-[20px]
+              uppercase tracking-[1px]
+            ">
+              {event.tag}
+            </span>
+            {event.isPast && (
+              <span className="text-[0.7rem] font-bold text-white bg-black/60 px-[13px] py-[6px] rounded-[20px] uppercase tracking-[1px]">
+                Finalizado
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Body */}

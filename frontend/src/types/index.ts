@@ -118,6 +118,7 @@ export interface UIEvent {
   full: string         // caption completo
   imageUrl: string | null
   eventDate: Date | null
+  isPast: boolean
   reminded: boolean
   coordinates?: { lat: number; lng: number }
 }

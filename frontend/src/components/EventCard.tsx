@@ -63,12 +63,19 @@ export default function EventCard({ event, onClick }: EventCardProps) {
 
       {/* Content column */}
       <div className="px-7 py-[26px] flex-1 flex flex-col justify-center">
-        <span className="
-          text-[0.7rem] font-bold text-ucsg-crimson-400 uppercase
-          mb-[9px] tracking-[1.2px]
-        ">
-          {event.tag}
-        </span>
+        <div className="flex items-center gap-2 mb-[9px]">
+          <span className="
+            text-[0.7rem] font-bold text-ucsg-crimson-400 uppercase
+            tracking-[1.2px]
+          ">
+            {event.tag}
+          </span>
+          {event.isPast && (
+            <span className="text-[0.65rem] font-bold uppercase tracking-[0.5px] bg-ucsg-warm-100 text-ucsg-muted px-2 py-[2px] rounded-full">
+              Finalizado
+            </span>
+          )}
+        </div>
 
         <h3 className="
           font-serif text-[1.5rem] text-ucsg-brown-900 mb-[13px]

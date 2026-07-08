@@ -703,6 +703,9 @@ video {
 .mb-\[9px\] {
   margin-bottom: 9px;
 }
+.ml-2 {
+  margin-left: 0.5rem;
+}
 .mt-0\.5 {
   margin-top: 0.125rem;
 }
@@ -921,6 +924,9 @@ video {
 }
 .min-w-\[296px\] {
   min-width: 296px;
+}
+.max-w-2xl {
+  max-width: 42rem;
 }
 .max-w-\[1180px\] {
   max-width: 1180px;
@@ -1147,6 +1153,11 @@ video {
   --tw-space-y-reverse: 0;
   margin-top: calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));
   margin-bottom: calc(0.75rem * var(--tw-space-y-reverse));
+}
+.space-y-4 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(1rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(1rem * var(--tw-space-y-reverse));
 }
 .space-y-6 > :not([hidden]) ~ :not([hidden]) {
   --tw-space-y-reverse: 0;
@@ -1664,6 +1675,10 @@ video {
   padding-top: 9px;
   padding-bottom: 9px;
 }
+.py-\[2px\] {
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
 .pb-10 {
   padding-bottom: 2.5rem;
 }
@@ -1708,6 +1723,9 @@ video {
 }
 .align-middle {
   vertical-align: middle;
+}
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 .font-sans {
   font-family: Libre Franklin, -apple-system, BlinkMacSystemFont, sans-serif;

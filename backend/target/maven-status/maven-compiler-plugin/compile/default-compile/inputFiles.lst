@@ -5,11 +5,13 @@ C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\anal
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\request\RegisterRequest.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\request\ReminderRequest.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\request\UpdateEventRequest.java
+C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\request\UpdateInstagramTokenRequest.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\response\AuthResponse.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\response\ErrorResponse.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\response\EventResponse.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\response\EventSummaryResponse.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\response\IngestionRunResponse.java
+C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\response\InstagramTokenStatusResponse.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\response\PageResponse.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\response\ReminderResponse.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\application\dto\response\ZoneRematchResponse.java
@@ -70,6 +72,7 @@ C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\anal
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\exception\UserAlreadyExistsException.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\rest\AdminEventController.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\rest\AdminIngestionController.java
+C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\rest\AdminInstagramController.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\rest\AdminUserController.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\rest\AuthController.java
 C:\NotifiacionesCato\instagram-analytics-tool\backend\src\main\java\ec\ucsg\analytics\interfaces\rest\EventController.java

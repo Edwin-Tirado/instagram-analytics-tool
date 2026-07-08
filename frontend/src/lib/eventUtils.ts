@@ -49,6 +49,7 @@ export function toUIEvent(ev: EventSummary, reminded: boolean): UIEvent {
     full:      cleaned,
     imageUrl:  ev.images?.[0]?.mediaUrl ?? ev.thumbnailUrl ?? null,
     eventDate: date,
+    isPast:    date ? date.getTime() < Date.now() : false,
     reminded,
     coordinates,
   }

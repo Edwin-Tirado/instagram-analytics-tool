@@ -16,6 +16,7 @@ ec\ucsg\analytics\domain\repository\ReminderRepository.class
 ec\ucsg\analytics\infrastructure\config\DataInitializer.class
 ec\ucsg\analytics\domain\enums\AuditAction.class
 ec\ucsg\analytics\domain\enums\RoleName.class
+ec\ucsg\analytics\application\dto\request\UpdateInstagramTokenRequest.class
 ec\ucsg\analytics\application\dto\request\LoginRequest.class
 ec\ucsg\analytics\application\dto\response\EventResponse$ZoneInfo.class
 ec\ucsg\analytics\infrastructure\security\CorsConfig.class
@@ -32,6 +33,7 @@ ec\ucsg\analytics\domain\model\IngestionRun$TriggerType.class
 ec\ucsg\analytics\application\service\EventIngestionService.class
 ec\ucsg\analytics\interfaces\rest\MailTestController.class
 ec\ucsg\analytics\application\dto\response\EventSummaryResponse.class
+ec\ucsg\analytics\application\dto\response\InstagramTokenStatusResponse.class
 ec\ucsg\analytics\interfaces\rest\SupervisorController.class
 ec\ucsg\analytics\domain\model\InstagramToken.class
 ec\ucsg\analytics\application\mapper\EventMapperImpl.class
@@ -93,6 +95,7 @@ ec\ucsg\analytics\infrastructure\security\LoginAttemptService.class
 ec\ucsg\analytics\interfaces\rest\SupervisorZoneController.class
 ec\ucsg\analytics\application\service\EventIngestionService$IngestionOutcome.class
 ec\ucsg\analytics\application\service\ZoneMatchingService.class
+ec\ucsg\analytics\interfaces\rest\AdminInstagramController.class
 ec\ucsg\analytics\application\mapper\EventMapper.class
 ec\ucsg\analytics\interfaces\exception\GlobalExceptionHandler.class
 ec\ucsg\analytics\application\dto\response\ZoneRematchResponse.class
