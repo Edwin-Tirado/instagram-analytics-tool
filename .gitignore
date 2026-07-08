@@ -1,2 +1,9 @@
 # Contiene credenciales locales de Mailtrap para desarrollo — no commitear
 .vscode/launch.json
+
+# Build artifacts y dependencias — nunca deben versionarse.
+# node_modules commiteado desde Windows pierde el bit +x en los binarios
+# (ej. node_modules/.bin/next), lo que rompe el build en Vercel (Linux)
+# con "exited with 126".
+frontend/node_modules/
+frontend/.next/
