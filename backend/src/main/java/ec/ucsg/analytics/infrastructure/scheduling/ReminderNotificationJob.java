@@ -46,9 +46,10 @@ public class ReminderNotificationJob {
 
         for (Reminder reminder : due) {
             try {
-                // Forzar carga LAZY de imágenes dentro de la transacción activa
+                // Forzar carga LAZY de imágenes y zona dentro de la transacción activa
                 // antes de pasarlos al método @Async que corre fuera de la sesión.
                 int imageCount = reminder.getEvent().getImages().size();
+                if (reminder.getEvent().getZone() != null) reminder.getEvent().getZone().getName();
                 log.debug("Imágenes pre-cargadas: {} para recordatorio {}", imageCount, reminder.getId());
 
                 emailService.sendReminderEmail(
@@ -77,8 +78,9 @@ public class ReminderNotificationJob {
 
         for (Reminder reminder : due) {
             try {
-                // Forzar carga LAZY de imágenes dentro de la transacción activa
+                // Forzar carga LAZY de imágenes y zona dentro de la transacción activa
                 int imageCount = reminder.getEvent().getImages().size();
+                if (reminder.getEvent().getZone() != null) reminder.getEvent().getZone().getName();
                 log.debug("Imágenes pre-cargadas: {} para recordatorio {}", imageCount, reminder.getId());
 
                 emailService.sendDayReminderEmail(

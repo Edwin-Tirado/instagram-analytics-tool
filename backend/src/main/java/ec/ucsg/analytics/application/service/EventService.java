@@ -152,6 +152,12 @@ public class EventService {
         recordAudit(saved, admin, AuditAction.APPROVED);
         log.info("Evento '{}' aprobado por {}", saved.getTitle(), adminEmail);
 
+        // Forzar carga LAZY de zona/imágenes dentro de la transacción activa —
+        // notifyEventApproved() corre en un hilo @Async sin sesión de Hibernate,
+        // así que cualquier proxy sin inicializar explota con LazyInitializationException.
+        if (saved.getZone() != null) saved.getZone().getName();
+        saved.getImages().size();
+
         // Notificación en segundo plano — un fallo de envío no debe revertir la
         // aprobación, que ya quedó confirmada en las líneas anteriores.
         eventApprovalNotifier.notifyEventApproved(saved);
