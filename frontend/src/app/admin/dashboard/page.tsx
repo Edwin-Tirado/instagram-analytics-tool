@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import AdminLayout from '@/components/admin/AdminLayout'
 import DataTable from '@/components/admin/DataTable'
@@ -850,7 +850,7 @@ function InstagramTab() {
 
 // ── Página principal ──────────────────────────────────────────────────────────
 
-export default function AdminDashboardPage() {
+function AdminDashboardContent() {
   const searchParams = useSearchParams()
   const tab = searchParams.get('tab')
 
@@ -858,5 +858,13 @@ export default function AdminDashboardPage() {
     <AdminLayout>
       {tab === 'users' ? <UsersTab /> : tab === 'instagram' ? <InstagramTab /> : <EventsTab />}
     </AdminLayout>
+  )
+}
+
+export default function AdminDashboardPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminDashboardContent />
+    </Suspense>
   )
 }
