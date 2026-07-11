@@ -11,7 +11,6 @@ import ec.ucsg.analytics.domain.repository.UserRepository;
 import ec.ucsg.analytics.infrastructure.security.JwtService;
 import ec.ucsg.analytics.infrastructure.security.LoginAttemptService;
 import ec.ucsg.analytics.interfaces.exception.AccountLockedException;
-import ec.ucsg.analytics.interfaces.exception.EmailDomainNotAllowedException;
 import ec.ucsg.analytics.interfaces.exception.UserAlreadyExistsException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,8 +40,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private static final String ALLOWED_DOMAIN = "@cu.ucsg.edu.ec";
-
     private final UserRepository      userRepository;
     private final RoleRepository      roleRepository;
     private final PasswordEncoder     passwordEncoder;
@@ -55,12 +52,7 @@ public class AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
 
-        // 1. Validar dominio estrictamente (capa 2)
-        if (!request.email().toLowerCase().endsWith(ALLOWED_DOMAIN)) {
-            throw new EmailDomainNotAllowedException(request.email());
-        }
-
-        // 2. Verificar que el email no esté ya registrado
+        // 1. Verificar que el email no esté ya registrado
         if (userRepository.existsByEmail(request.email().toLowerCase())) {
             throw new UserAlreadyExistsException(request.email());
         }

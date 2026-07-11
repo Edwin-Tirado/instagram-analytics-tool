@@ -132,7 +132,7 @@ export default function RegisterPage() {
               Crear cuenta
             </h2>
             <p className="text-ucsg-brown-400 text-[0.95rem]">
-              Regístrate con tu correo institucional UCSG.
+              Regístrate con tu correo electrónico.
             </p>
           </div>
 
@@ -209,7 +209,7 @@ export default function RegisterPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="correo@cu.ucsg.edu.ec"
+                placeholder="correo@ejemplo.com"
                 disabled={loading || success}
                 className="
                   w-full px-4 py-[13px] rounded-xl

@@ -198,7 +198,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => handleEmailChange(e.target.value)}
-                placeholder="correo@cu.ucsg.edu.ec"
+                placeholder="correo@ejemplo.com"
                 disabled={loading || isLocked}
                 className="
                   w-full px-4 py-[13px] rounded-xl

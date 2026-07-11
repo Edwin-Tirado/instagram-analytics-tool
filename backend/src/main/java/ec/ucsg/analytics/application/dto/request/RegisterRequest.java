@@ -7,10 +7,6 @@ import jakarta.validation.constraints.Size;
 
 /**
  * Payload del endpoint POST /api/auth/register.
- *
- * La validación de dominio se aplica en dos capas:
- *   1. @Pattern aquí (fallo rápido en el deserializador).
- *   2. Chequeo programático en AuthService (defensa en profundidad).
  */
 public record RegisterRequest(
 
@@ -20,10 +16,6 @@ public record RegisterRequest(
 
     @NotBlank(message = "El correo es obligatorio")
     @Email(message = "Formato de correo inválido")
-    @Pattern(
-        regexp = "^[a-zA-Z0-9._%+\\-]+@cu\\.ucsg\\.edu\\.ec$",
-        message = "Solo se permiten correos con dominio @cu.ucsg.edu.ec"
-    )
     String email,
 
     @NotBlank(message = "La contraseña es obligatoria")
@@ -35,3 +27,4 @@ public record RegisterRequest(
     String password
 
 ) {}
+
