@@ -11,6 +11,7 @@ import {
   supervisorUpdateEvent, supervisorDeleteEvent,
   getZones, createZone, adminRematchZones,
   getInstagramTokenStatus, updateInstagramToken, InstagramTokenStatus,
+  supervisorGetReminderCount,
 } from '@/lib/api'
 import { getStoredUser } from '@/lib/auth'
 import { useInstagramSync } from '@/lib/useInstagramSync'
@@ -54,6 +55,7 @@ function EventsTab() {
   const [editTarget, setEditTarget]       = useState<AdminEvent | null>(null)
   const [editForm, setEditForm]           = useState({ title: '', eventDate: '', zoneId: 0, locationText: '' })
   const [zones, setZones]                 = useState<Zone[]>([])
+  const [reminderCounts, setReminderCounts] = useState<Record<string, number>>({})
 
   // ── Agregar nueva ubicación (desde el modal de Editar) ───────────────────────
   const [addingZone, setAddingZone]     = useState(false)
@@ -98,6 +100,17 @@ function EventsTab() {
   // supervisor dispare por error la llamada de ADMIN (403) en el primer render,
   // cuando userRoles todavía está vacío.
   useEffect(() => { if (rolesReady) load(page, filter) }, [page, filter, load, rolesReady])
+
+  // Cargar conteo de recordatorios para los eventos visibles
+  useEffect(() => {
+    if (events.length === 0) return
+    const approved = events.filter(ev => ev.status === 'APPROVED')
+    approved.forEach(ev => {
+      supervisorGetReminderCount(ev.id)
+        .then(count => setReminderCounts(prev => ({ ...prev, [ev.id]: count })))
+        .catch(() => {})
+    })
+  }, [events])
 
   async function handleApprove(ev: AdminEvent) {
     try {
@@ -314,13 +327,24 @@ function EventsTab() {
             {
               header: 'Estado',
               accessor: (ev) => (
-                <span
-                  className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                    STATUS_COLORS[ev.status] ?? 'bg-gray-100 text-gray-600'
-                  }`}
-                >
-                  {STATUS_LABELS[ev.status] ?? ev.status}
-                </span>
+                <div className="space-y-1">
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                      STATUS_COLORS[ev.status] ?? 'bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {STATUS_LABELS[ev.status] ?? ev.status}
+                  </span>
+                  {ev.status === 'APPROVED' && reminderCounts[ev.id] !== undefined && (
+                    <div
+                      className="flex items-center gap-1 text-[10px] text-[#7a6652]"
+                      title={`${reminderCounts[ev.id]} persona(s) tienen recordatorio de este evento`}
+                    >
+                      <span>🔔</span>
+                      <span>{reminderCounts[ev.id]} recordatorio{reminderCounts[ev.id] !== 1 ? 's' : ''}</span>
+                    </div>
+                  )}
+                </div>
               ),
             },
             {

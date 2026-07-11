@@ -2,6 +2,7 @@ package ec.ucsg.analytics.interfaces.rest;
 
 import ec.ucsg.analytics.application.dto.request.ApprovalRequest;
 import ec.ucsg.analytics.application.dto.request.UpdateEventRequest;
+import ec.ucsg.analytics.application.dto.response.AuditLogResponse;
 import ec.ucsg.analytics.application.dto.response.EventResponse;
 import ec.ucsg.analytics.application.dto.response.PageResponse;
 import ec.ucsg.analytics.application.dto.response.ZoneRematchResponse;
@@ -99,12 +100,25 @@ public class AdminEventController {
     }
 
     /**
-     * Reintenta asignar zona a los eventos que quedaron sin ninguna —
+     * Reintenta asignar zona a los eventos sin ninguna —
      * usar después de reemplazar el catálogo de zonas (no vuelve a
      * llamar a Instagram, solo reprocesa el caption ya guardado).
      */
     @PostMapping("/rematch-zones")
     public ResponseEntity<ZoneRematchResponse> rematchZones() {
         return ResponseEntity.ok(eventService.rematchZones());
+    }
+
+    /**
+     * Historial paginado de ediciones y eliminaciones de eventos.
+     * Solo accesible para ROLE_ADMIN.
+     */
+    @GetMapping("/audit-log")
+    public ResponseEntity<PageResponse<AuditLogResponse>> getAuditLog(
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "50") int size) {
+
+        PageRequest pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(eventService.getEditAuditLogs(pageable));
     }
 }

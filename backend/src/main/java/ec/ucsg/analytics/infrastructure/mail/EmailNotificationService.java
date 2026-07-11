@@ -75,6 +75,24 @@ public class EmailNotificationService {
         send(user.getEmail(), subject, body);
     }
 
+    // ── 5. Evento editado — notificar a usuarios con recordatorio ────────────
+
+    @Async
+    public void sendEventEditedNotification(AppUser user, Event event) {
+        String subject = "✏️ Evento actualizado: " + event.getTitle();
+        String body    = buildEventEditedHtml(user, event);
+        send(user.getEmail(), subject, body);
+    }
+
+    // ── 6. Evento eliminado — notificar a usuarios con recordatorio ──────────
+
+    @Async
+    public void sendEventDeletedNotification(AppUser user, String eventTitle) {
+        String subject = "❌ Evento cancelado: " + eventTitle;
+        String body    = buildEventDeletedHtml(user, eventTitle);
+        send(user.getEmail(), subject, body);
+    }
+
     // ── Core de envío ────────────────────────────────────────────────────────
 
     @Async
@@ -337,4 +355,93 @@ public class EmailNotificationService {
         if (minutes == 1440) return "1 día";
         return (minutes / 1440) + " días";
     }
+
+    private String buildEventEditedHtml(AppUser user, Event event) {
+        String dateStr   = event.getEventDate() != null
+            ? event.getEventDate().format(DATE_FORMAT) : "Fecha por confirmar";
+        String zone      = event.getZone() != null ? event.getZone().getName() : "Campus UCSG";
+        String name      = user.getFullName() != null ? user.getFullName() : user.getEmail();
+        String imageHtml = buildImageBlock(event);
+        String ctaUrl    = buildEventUrl(event);
+        int    year      = java.time.Year.now().getValue();
+
+        return """
+            <!DOCTYPE html>
+            <html lang="es">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            </head>
+            <body style="font-family:Arial,sans-serif;background:#f5f0eb;padding:20px;margin:0;">
+              <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+                <div style="background:#931934;color:#fff;padding:28px 32px;">
+                  <p style="margin:0 0 4px;font-size:13px;opacity:.8;letter-spacing:2px;text-transform:uppercase;">UCSG Eventos</p>
+                  <h1 style="margin:0;font-size:22px;font-weight:700;">Evento actualizado ✏️</h1>
+                </div>
+                %s
+                <div style="padding:32px;">
+                  <p style="color:#4a3728;margin:0 0 8px;">Hola, <strong>%s</strong></p>
+                  <p style="color:#6b5344;margin:0 0 24px;">Un evento en el que tienes un recordatorio ha sido <strong>modificado</strong>. Aquí están los datos actualizados:</p>
+                  <div style="background:#fdf6f0;border-left:4px solid #931934;padding:18px 20px;border-radius:6px;margin-bottom:28px;">
+                    <h2 style="margin:0 0 10px;color:#931934;font-size:17px;">%s</h2>
+                    <p style="margin:4px 0;color:#4a3728;">📅 <strong>%s</strong></p>
+                    <p style="margin:4px 0;color:#4a3728;">📍 <strong>%s</strong></p>
+                  </div>
+                  <div style="text-align:center;margin-bottom:8px;">
+                    <a href="%s" target="_blank"
+                       style="display:inline-block;background:#931934;color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 32px;border-radius:8px;letter-spacing:.3px;">
+                      Ver evento actualizado
+                    </a>
+                  </div>
+                  <p style="color:#9e8070;font-size:12px;text-align:center;margin:12px 0 0;">Si los nuevos datos no te convienen, puedes cancelar tu recordatorio desde el sitio.</p>
+                </div>
+                <div style="background:#fdf6f0;padding:16px 32px;text-align:center;color:#b89f90;font-size:12px;">
+                  © %d Universidad Católica de Santiago de Guayaquil
+                </div>
+              </div>
+            </body>
+            </html>
+            """.formatted(imageHtml, name, event.getTitle(), dateStr, zone, ctaUrl, year);
+    }
+
+    private String buildEventDeletedHtml(AppUser user, String eventTitle) {
+        String name = user.getFullName() != null ? user.getFullName() : user.getEmail();
+        int    year = java.time.Year.now().getValue();
+
+        return """
+            <!DOCTYPE html>
+            <html lang="es">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            </head>
+            <body style="font-family:Arial,sans-serif;background:#f5f0eb;padding:20px;margin:0;">
+              <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+                <div style="background:#931934;color:#fff;padding:28px 32px;">
+                  <p style="margin:0 0 4px;font-size:13px;opacity:.8;letter-spacing:2px;text-transform:uppercase;">UCSG Eventos</p>
+                  <h1 style="margin:0;font-size:22px;font-weight:700;">Evento cancelado ❌</h1>
+                </div>
+                <div style="padding:32px;">
+                  <p style="color:#4a3728;margin:0 0 8px;">Hola, <strong>%s</strong></p>
+                  <p style="color:#6b5344;margin:0 0 24px;">Lamentamos informarte que el siguiente evento al que tenías un recordatorio ha sido <strong>cancelado o eliminado</strong>:</p>
+                  <div style="background:#fff5f5;border-left:4px solid #931934;padding:18px 20px;border-radius:6px;margin-bottom:28px;">
+                    <h2 style="margin:0;color:#931934;font-size:17px;">%s</h2>
+                  </div>
+                  <p style="color:#6b5344;text-align:center;margin:0 0 24px;">Tu recordatorio ha sido cancelado automáticamente. Puedes explorar otros eventos disponibles en el portal.</p>
+                  <div style="text-align:center;margin-bottom:8px;">
+                    <a href="%s" target="_blank"
+                       style="display:inline-block;background:#931934;color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 32px;border-radius:8px;letter-spacing:.3px;">
+                      Ver otros eventos
+                    </a>
+                  </div>
+                </div>
+                <div style="background:#fdf6f0;padding:16px 32px;text-align:center;color:#b89f90;font-size:12px;">
+                  © %d Universidad Católica de Santiago de Guayaquil
+                </div>
+              </div>
+            </body>
+            </html>
+            """.formatted(name, eventTitle, frontendUrl, year);
+    }
 }
+

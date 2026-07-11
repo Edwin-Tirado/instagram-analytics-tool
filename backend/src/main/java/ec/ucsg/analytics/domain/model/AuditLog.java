@@ -37,7 +37,7 @@ public class AuditLog {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id", nullable = false)
+    @JoinColumn(name = "event_id", nullable = true)
     private Event event;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -47,6 +47,14 @@ public class AuditLog {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private AuditAction action;
+
+    /**
+     * Snapshot del título del evento en el momento de la acción.
+     * Permite mostrar el título incluso si el evento fue eliminado
+     * (cuando event_id queda NULL por ON DELETE SET NULL).
+     */
+    @Column(name = "event_title_snapshot", length = 500)
+    private String eventTitleSnapshot;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

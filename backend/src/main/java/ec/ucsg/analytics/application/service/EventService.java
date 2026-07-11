@@ -2,8 +2,10 @@ package ec.ucsg.analytics.application.service;
 
 import ec.ucsg.analytics.application.dto.request.CreateZoneRequest;
 import ec.ucsg.analytics.application.dto.request.UpdateEventRequest;
+import ec.ucsg.analytics.application.dto.response.AuditLogResponse;
 import ec.ucsg.analytics.application.dto.response.EventResponse;
 import ec.ucsg.analytics.application.dto.response.EventSummaryResponse;
+import ec.ucsg.analytics.application.dto.response.PageResponse;
 import ec.ucsg.analytics.application.dto.response.ZoneRematchResponse;
 import ec.ucsg.analytics.application.dto.response.ZoneResponse;
 import ec.ucsg.analytics.application.mapper.EventMapper;
@@ -12,11 +14,14 @@ import ec.ucsg.analytics.domain.enums.EventStatus;
 import ec.ucsg.analytics.domain.model.AppUser;
 import ec.ucsg.analytics.domain.model.AuditLog;
 import ec.ucsg.analytics.domain.model.Event;
+import ec.ucsg.analytics.domain.model.Reminder;
 import ec.ucsg.analytics.domain.model.Zone;
 import ec.ucsg.analytics.domain.repository.AuditLogRepository;
 import ec.ucsg.analytics.domain.repository.EventRepository;
+import ec.ucsg.analytics.domain.repository.ReminderRepository;
 import ec.ucsg.analytics.domain.repository.UserRepository;
 import ec.ucsg.analytics.domain.repository.ZoneRepository;
+import ec.ucsg.analytics.infrastructure.mail.EmailNotificationService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +49,8 @@ public class EventService {
     private final AuditLogRepository         auditLogRepository;
     private final EventApprovalNotifier      eventApprovalNotifier;
     private final ZoneMatchingService        zoneMatchingService;
+    private final ReminderRepository         reminderRepository;
+    private final EmailNotificationService   emailService;
 
     // ── Endpoints públicos (mapa) ────────────────────────────────────
 
@@ -183,6 +190,7 @@ public class EventService {
         auditLogRepository.save(
             AuditLog.builder()
                 .event(event)
+                .eventTitleSnapshot(event.getTitle())  // preserva el título si el evento es borrado después
                 .supervisor(supervisor)
                 .action(action)
                 .build()
@@ -221,10 +229,13 @@ public class EventService {
     /**
      * Edita un evento publicado (título, fecha, zona, texto de ubicación).
      * Solo se actualizan los campos no-nulos del request.
+     * Registra auditoría EDITED y notifica a usuarios con recordatorio activo.
      */
     @Transactional
     public EventResponse updateEvent(UUID eventId, UpdateEventRequest request, String supervisorEmail) {
         Event event = findEvent(eventId);
+        AppUser supervisor = userRepository.findByEmail(supervisorEmail)
+            .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado: " + supervisorEmail));
 
         if (request.title() != null && !request.title().isBlank()) {
             event.setTitle(request.title().trim());
@@ -246,16 +257,68 @@ public class EventService {
         }
 
         Event saved = eventRepository.save(event);
+        recordAudit(saved, supervisor, AuditAction.EDITED);
         log.info("Evento '{}' editado por {}", saved.getTitle(), supervisorEmail);
+
+        // Forzar carga LAZY antes del contexto @Async
+        if (saved.getZone() != null) saved.getZone().getName();
+        saved.getImages().size();
+
+        // Notificar a usuarios con recordatorio activo (asíncrono — no bloquea la respuesta)
+        List<Reminder> reminders = reminderRepository.findByEventId(eventId);
+        for (Reminder r : reminders) {
+            emailService.sendEventEditedNotification(r.getUser(), saved);
+        }
+        log.info("Notificados {} usuarios del evento editado '{}'", reminders.size(), saved.getTitle());
+
         return eventMapper.toResponse(saved);
     }
 
-    /** Elimina permanentemente un evento publicado y su carrusel de imágenes. */
+    /**
+     * Elimina permanentemente un evento publicado y su carrusel de imágenes.
+     * Recoge usuarios con recordatorio ANTES de borrar (cascade limpia los reminders).
+     * Registra auditoría DELETED y notifica a los usuarios afectados.
+     */
     @Transactional
     public void deleteEvent(UUID eventId, String supervisorEmail) {
         Event event = findEvent(eventId);
+        AppUser supervisor = userRepository.findByEmail(supervisorEmail)
+            .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado: " + supervisorEmail));
+
+        // Recoger usuarios ANTES del delete — el cascade borrará los reminders
+        List<Reminder> reminders = reminderRepository.findByEventId(eventId);
+        String title = event.getTitle();
+
+        recordAudit(event, supervisor, AuditAction.DELETED);
         eventRepository.delete(event);
-        log.info("Evento '{}' eliminado por {}", event.getTitle(), supervisorEmail);
+        log.info("Evento '{}' eliminado por {}", title, supervisorEmail);
+
+        // Notificar a los usuarios afectados (asíncrono)
+        for (Reminder r : reminders) {
+            emailService.sendEventDeletedNotification(r.getUser(), title);
+        }
+        log.info("Notificados {} usuarios del evento eliminado '{}'", reminders.size(), title);
+    }
+
+    /** Número de recordatorios activos de un evento (Feature 3 — supervisor). */
+    @Transactional(readOnly = true)
+    public long getReminderCount(UUID eventId) {
+        return reminderRepository.countByEventId(eventId);
+    }
+
+    /**
+     * Historial paginado de ediciones y eliminaciones — solo para ADMIN (Feature 2).
+     * Devuelve registros con acción EDITED o DELETED, ordenados del más reciente al más antiguo.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<AuditLogResponse> getEditAuditLogs(Pageable pageable) {
+        Page<AuditLogResponse> page = auditLogRepository
+            .findByActionInOrderByCreatedAtDesc(
+                List.of(AuditAction.EDITED, AuditAction.DELETED),
+                pageable
+            )
+            .map(AuditLogResponse::from);
+        return PageResponse.of(page);
     }
 
     // ── Privados ─────────────────────────────────────────────────────

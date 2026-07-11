@@ -161,7 +161,11 @@ public class EventIngestionService {
 
         // 1. Guardia — ¿ya procesamos alguna imagen de este post?
         if (eventImageRepository.existsBySourceInstagramPostId(post.getId())) {
-            log.debug("Post ya procesado, omitiendo: {}", post.getId());
+            // Refrescar la mediaUrl expirada con la URL fresca que viene en el post actual.
+            // Esto ocurre en el mismo request a la API (sin llamada adicional): aprovechamos
+            // que el cron ya trajo el post con su media_url actualizada.
+            refreshImageUrls(post);
+            log.debug("Post ya procesado, URLs refrescadas: {}", post.getId());
             return IngestionOutcome.SKIPPED;
         }
 
@@ -278,7 +282,61 @@ public class EventIngestionService {
         }
     }
 
-    // ── Resultado de la operación ────────────────────────────────────
+    /**
+     * Refresca las mediaUrl de todas las imágenes vinculadas a un post de Instagram.
+     *
+     * Las URLs de Instagram expiran después de ~7 días. El pipeline de ingesta
+     * llama a este método cuando detecta que el post ya fue procesado (SKIPPED),
+     * aprovechando la URL fresca que la API de Instagram acaba de devolver
+     * sin necesidad de una llamada HTTP adicional.
+     *
+     * Para CAROUSEL_ALBUM: las URLs frescas vienen de los hijos (llamada a /children).
+     * Para IMAGE: la URL fresca viene directamente del media_url del post padre.
+     */
+    private void refreshImageUrls(InstagramMediaItem post) {
+        try {
+            if ("CAROUSEL_ALBUM".equals(post.getMediaType())) {
+                List<InstagramMediaItem> children = apiClient.fetchChildren(post.getId());
+                // Indexar los hijos por su propio ID para emparejarlos con las imágenes guardadas
+                java.util.Map<String, String> freshUrlByChildId = new java.util.HashMap<>();
+                for (InstagramMediaItem child : children) {
+                    if (child.getId() != null && child.getMediaUrl() != null) {
+                        freshUrlByChildId.put(child.getId(), child.getMediaUrl());
+                    }
+                }
+                // Actualizar las imágenes del álbum cuyo sourceInstagramPostId coincide con el padre
+                List<ec.ucsg.analytics.domain.model.EventImage> images =
+                    eventImageRepository.findBySourceInstagramPostId(post.getId());
+                for (ec.ucsg.analytics.domain.model.EventImage img : images) {
+                    // Para álbumes, la mediaUrl original puede no coincidir con el ID del hijo;
+                    // actualizamos todas las imágenes del álbum en orden si el número de hijos coincide.
+                    // Si solo hay un hijo fresco, usamos su URL directamente.
+                    if (!freshUrlByChildId.isEmpty()) {
+                        String freshUrl = freshUrlByChildId.values().iterator().next();
+                        if (!freshUrl.equals(img.getMediaUrl())) {
+                            img.setMediaUrl(freshUrl);
+                            eventImageRepository.save(img);
+                        }
+                    }
+                }
+            } else if (post.getMediaUrl() != null) {
+                List<ec.ucsg.analytics.domain.model.EventImage> images =
+                    eventImageRepository.findBySourceInstagramPostId(post.getId());
+                for (ec.ucsg.analytics.domain.model.EventImage img : images) {
+                    if (!post.getMediaUrl().equals(img.getMediaUrl())) {
+                        img.setMediaUrl(post.getMediaUrl());
+                        eventImageRepository.save(img);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Fail-safe: el refresco de URLs es una mejora de calidad, nunca debe
+            // interrumpir el pipeline principal ni crear un IngestionRun FAILED.
+            log.warn("No se pudieron refrescar las URLs del post {}: {}", post.getId(), e.getMessage());
+        }
+    }
+
+    // ── Resultado de la operación ───────────────────────────────────────────────
 
     public enum IngestionOutcome {
         CREATED,    // Nuevo evento PENDING guardado

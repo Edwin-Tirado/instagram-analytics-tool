@@ -18,6 +18,12 @@ public interface ReminderRepository extends JpaRepository<Reminder, UUID> {
 
     List<Reminder> findByUserIdAndEventId(UUID userId, UUID eventId);
 
+    /** Número de recordatorios activos de un evento — para el badge del supervisor. */
+    long countByEventId(UUID eventId);
+
+    /** Todos los recordatorios de un evento — usado para notificar a los usuarios al editar/eliminar. */
+    List<Reminder> findByEventId(UUID eventId);
+
     /**
      * Usuarios que alguna vez pusieron un recordatorio en un evento de esta zona
      * (excluyendo al propio evento) — usado como proxy de "interés" para notificar

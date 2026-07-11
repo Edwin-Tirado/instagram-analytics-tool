@@ -157,4 +157,14 @@ public class SupervisorController {
         PageRequest pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(ingestionService.getRunHistory(pageable));
     }
+
+    /**
+     * Número de usuarios que tienen un recordatorio activo en el evento.
+     * Acceso: ROLE_SUPERVISOR y ROLE_ADMIN.
+     */
+    @GetMapping("/{id}/reminder-count")
+    public ResponseEntity<java.util.Map<String, Long>> getReminderCount(@PathVariable UUID id) {
+        long count = eventService.getReminderCount(id);
+        return ResponseEntity.ok(java.util.Map.of("count", count));
+    }
 }

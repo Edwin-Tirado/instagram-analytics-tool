@@ -198,3 +198,27 @@ export interface AdminUserPage {
   totalPages: number
   last: boolean
 }
+
+// ── Auditoría de ediciones/eliminaciones (Admin) ─────────────────────────────
+
+export type AuditActionType = 'APPROVED' | 'REJECTED' | 'EDITED' | 'DELETED'
+
+export interface AuditLogEntry {
+  id: string
+  eventId: string | null
+  eventTitle: string
+  supervisorEmail: string | null
+  supervisorName: string | null
+  action: AuditActionType
+  createdAt: string
+}
+
+export interface AuditLogPage {
+  content: AuditLogEntry[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+  last: boolean
+}
+

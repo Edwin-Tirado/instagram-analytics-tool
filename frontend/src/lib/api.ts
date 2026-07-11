@@ -3,6 +3,7 @@ import {
   AdminEventPage,
   AdminUser,
   AdminUserPage,
+  AuditLogPage,
   AuthResponse,
   Event,
   EventSummary,
@@ -304,4 +305,25 @@ export async function adminChangeRole(id: string, role: string): Promise<AdminUs
     method: 'PATCH',
     body: JSON.stringify({ role }),
   })
+}
+
+// ── Admin: registro de auditoría de ediciones/eliminaciones ──────────────────
+
+/**
+ * Historial paginado de ediciones y eliminaciones de eventos.
+ * Solo accesible para ROLE_ADMIN.
+ */
+export async function adminGetAuditLog(page = 0, size = 50): Promise<AuditLogPage> {
+  return apiFetch<AuditLogPage>(`/api/admin/events/audit-log?page=${page}&size=${size}`)
+}
+
+// ── Supervisor: conteo de recordatorios por evento ────────────────────────────
+
+/**
+ * Número de usuarios con recordatorio activo en el evento dado.
+ * Accesible para ROLE_SUPERVISOR y ROLE_ADMIN.
+ */
+export async function supervisorGetReminderCount(eventId: string): Promise<number> {
+  const data = await apiFetch<{ count: number }>(`/api/supervisor/events/${eventId}/reminder-count`)
+  return data.count
 }

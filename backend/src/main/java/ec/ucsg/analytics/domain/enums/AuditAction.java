@@ -5,5 +5,7 @@ package ec.ucsg.analytics.domain.enums;
  */
 public enum AuditAction {
     APPROVED,
-    REJECTED
+    REJECTED,
+    EDITED,
+    DELETED
 }

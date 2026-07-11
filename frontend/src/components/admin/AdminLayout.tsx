@@ -12,6 +12,7 @@ const NAV_ADMIN = [
   { href: '/admin/dashboard?tab=users', label: 'Usuarios', icon: '👥' },
   { href: '/supervisor/logs', label: 'Historial Ingesta', icon: '📊' },
   { href: '/admin/dashboard?tab=instagram', label: 'Instagram', icon: '📸' },
+  { href: '/admin/audit', label: 'Registro de Ediciones', icon: '📝' },
 ]
 
 const NAV_SUPERVISOR = [
