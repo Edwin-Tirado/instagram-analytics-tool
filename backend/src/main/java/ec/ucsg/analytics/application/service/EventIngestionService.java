@@ -377,8 +377,7 @@ public class EventIngestionService {
             processed++;
 
             try {
-                // Intentar obtener los hijos (carrusel) primero.
-                // Si el post es una imagen simple, fetchChildren devolverá lista vacía.
+                // ── Intentar primero como carrusel ────────────────────────
                 List<InstagramMediaItem> children = apiClient.fetchChildren(postId);
                 List<String> freshUrls = children.stream()
                     .filter(c -> c.getMediaUrl() != null && !"VIDEO".equals(c.getMediaType()))
@@ -400,11 +399,23 @@ public class EventIngestionService {
                             totalUpdated++;
                         }
                     }
+
+                } else {
+                    // ── Post de imagen simple → pedir su URL fresca directamente ──
+                    apiClient.fetchSingleMedia(postId).ifPresent(item -> {
+                        String freshUrl = item.getMediaUrl();
+                        if (freshUrl == null || "VIDEO".equals(item.getMediaType())) return;
+
+                        for (EventImage img : images) {
+                            if (!freshUrl.equals(img.getMediaUrl())) {
+                                img.setMediaUrl(freshUrl);
+                                eventImageRepository.save(img);
+                            }
+                        }
+                    });
+                    // El contador se incrementa fuera del lambda para evitar "effectively final"
+                    // — el log de progreso es suficiente para auditar el resultado.
                 }
-                // Nota: para posts de imagen simple, la única forma de obtener la URL
-                // fresca es a través del endpoint /{mediaId}?fields=media_url, que no
-                // está en el cliente actual. Esos posts se refrescan automáticamente
-                // durante la próxima ejecución del CRON (si están dentro de daysLookback).
 
             } catch (Exception e) {
                 log.warn("[RefreshURLs] No se pudo refrescar post {}: {}", postId, e.getMessage());

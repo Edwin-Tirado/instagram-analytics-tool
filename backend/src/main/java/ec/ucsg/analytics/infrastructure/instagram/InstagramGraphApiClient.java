@@ -150,6 +150,31 @@ public class InstagramGraphApiClient {
         }
     }
 
+    /**
+     * Recupera los datos actualizados de un post único (IMAGE o VIDEO).
+     * Usado para refrescar la media_url de imágenes simples que han expirado.
+     * Devuelve {@link java.util.Optional#empty()} ante cualquier error de red (fail-safe).
+     */
+    public java.util.Optional<InstagramMediaItem> fetchSingleMedia(String mediaId) {
+        String url = UriComponentsBuilder
+            .fromPath("/{mediaId}")
+            .queryParam("fields",       MEDIA_FIELDS)
+            .queryParam("access_token", tokenProvider.getCurrentToken())
+            .buildAndExpand(mediaId)
+            .toUriString();
+
+        try {
+            InstagramMediaItem item = restClient.get()
+                .uri(url)
+                .retrieve()
+                .body(InstagramMediaItem.class);
+            return java.util.Optional.ofNullable(item);
+        } catch (RestClientException e) {
+            log.warn("Error obteniendo media {}: {}", mediaId, e.getMessage());
+            return java.util.Optional.empty();
+        }
+    }
+
     // ── Privados ────────────────────────────────────────────────────
 
     private String buildInitialUrl(long sinceTimestamp) {
