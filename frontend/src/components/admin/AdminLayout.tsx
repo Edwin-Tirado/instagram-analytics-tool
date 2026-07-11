@@ -1,8 +1,10 @@
 'use client'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { clearTokens, ensureRoleCookie, getStoredUser } from '@/lib/auth'
+import { useIdleTimer } from '@/lib/useIdleTimer'
+import IdleWarningModal from '@/components/IdleWarningModal'
 import { AuthResponse } from '@/types'
 
 interface Props { children: React.ReactNode }
@@ -32,15 +34,30 @@ export default function AdminLayout({ children }: Props) {
 
   const isAdmin = user?.roles.includes('ROLE_ADMIN') ?? false
 
-  function handleLogout() {
+  const handleLogout = useCallback(() => {
     clearTokens()
     router.push('/login')
-  }
+  }, [router])
+
+  // ── Cierre automático por inactividad ────────────────────────────────────
+  const { isWarning, secondsRemaining, resetTimer } = useIdleTimer(
+    handleLogout,
+    Boolean(user), // solo activo cuando hay sesión cargada
+  )
 
   const navItems = isAdmin ? NAV_ADMIN : NAV_SUPERVISOR
 
   return (
     <div className="min-h-screen flex bg-[#f9f6f1]">
+      {/* Modal de advertencia de inactividad */}
+      {isWarning && (
+        <IdleWarningModal
+          secondsRemaining={secondsRemaining}
+          onStayLoggedIn={resetTimer}
+          onLogout={handleLogout}
+        />
+      )}
+
       {/* Sidebar */}
       <aside className="w-60 bg-[#931934] text-white flex flex-col">
         <div className="px-6 py-5 border-b border-white/20">

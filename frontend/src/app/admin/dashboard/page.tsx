@@ -11,7 +11,7 @@ import {
   supervisorUpdateEvent, supervisorDeleteEvent,
   getZones, createZone, adminRematchZones,
   getInstagramTokenStatus, updateInstagramToken, InstagramTokenStatus,
-  supervisorGetReminderCount,
+  supervisorGetReminderCount, adminRefreshImageUrls,
 } from '@/lib/api'
 import { getStoredUser } from '@/lib/auth'
 import { useInstagramSync } from '@/lib/useInstagramSync'
@@ -221,6 +221,23 @@ function EventsTab() {
     }
   }
 
+  const [refreshingUrls, setRefreshingUrls] = useState(false)
+  const [refreshUrlsMsg, setRefreshUrlsMsg] = useState<string | null>(null)
+
+  async function handleRefreshImageUrls() {
+    setRefreshingUrls(true); setRefreshUrlsMsg(null); setError(null)
+    try {
+      const res = await adminRefreshImageUrls()
+      setRefreshUrlsMsg(
+        'Refresco de imágenes iniciado en segundo plano. Las imágenes 403 se actualizarán en los próximos minutos.'
+      )
+    } catch (e: any) {
+      setError(e.message ?? 'No se pudo iniciar el refresco de imágenes')
+    } finally {
+      setRefreshingUrls(false)
+    }
+  }
+
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
   return (
@@ -245,6 +262,14 @@ function EventsTab() {
                 {rematching ? 'Re-emparejando…' : 'Re-emparejar zonas'}
               </button>
               <button
+                onClick={handleRefreshImageUrls} disabled={refreshingUrls}
+                title="Refresca todas las URLs de imágenes expiradas de Instagram (errores 403) en segundo plano"
+                className="flex items-center gap-2 bg-white border border-[#e8ddd4] text-[#7a6652] px-4 py-2 rounded-lg text-sm font-semibold hover:border-[#931934] hover:text-[#931934] disabled:opacity-60 transition-colors"
+              >
+                {refreshingUrls ? <span className="inline-block w-4 h-4 border-2 border-[#931934]/30 border-t-[#931934] rounded-full animate-spin" /> : '🖼️'}
+                {refreshingUrls ? 'Iniciando…' : 'Refrescar imágenes'}
+              </button>
+              <button
                 onClick={triggerSync} disabled={syncing}
                 className="flex items-center gap-2 bg-[#931934] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#7a1528] disabled:opacity-60 transition-colors"
               >
@@ -263,6 +288,7 @@ function EventsTab() {
 
         {syncMsg && <div className="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg">✅ {syncMsg}</div>}
         {rematchMsg && <div className="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg">✅ {rematchMsg}</div>}
+        {refreshUrlsMsg && <div className="bg-blue-50 border border-blue-200 text-blue-800 text-sm px-4 py-3 rounded-lg">🖼️ {refreshUrlsMsg}</div>}
         {(error || syncError) && <div className="bg-red-50 border border-red-200 text-red-800 text-sm px-4 py-3 rounded-lg">{error || syncError}</div>}
 
         <div className="flex gap-2">

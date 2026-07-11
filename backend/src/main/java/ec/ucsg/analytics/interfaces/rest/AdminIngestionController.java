@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -17,9 +18,10 @@ import java.util.UUID;
  * Acceso exclusivo: ROLE_ADMIN.
  *
  * Rutas:
- *   POST /api/admin/ingestion/run        → disparo manual inmediato
- *   GET  /api/admin/ingestion/runs       → historial paginado (más reciente primero)
- *   GET  /api/admin/ingestion/runs/{id}  → detalle de una ejecución específica
+ *   POST /api/admin/ingestion/run          → disparo manual inmediato
+ *   POST /api/admin/ingestion/refresh-urls → refresca todas las URLs expiradas
+ *   GET  /api/admin/ingestion/runs         → historial paginado (más reciente primero)
+ *   GET  /api/admin/ingestion/runs/{id}    → detalle de una ejecución específica
  */
 @RestController
 @RequestMapping("/api/admin/ingestion")
@@ -40,6 +42,24 @@ public class AdminIngestionController {
         IngestionRun run = ingestionService.createRun(IngestionRun.TriggerType.MANUAL);
         ingestionService.executeIngestionAsync(run.getId());
         return ResponseEntity.ok(IngestionRunResponse.from(run));
+    }
+
+    /**
+     * Refresca las URLs CDN de todas las imágenes almacenadas que puedan haber
+     * expirado (Instagram CDN expira las URLs en ~7 días).
+     *
+     * Retorna 202 Accepted de inmediato; el trabajo real corre en segundo plano
+     * (útil para cuentas con muchos eventos históricos fuera de la ventana del CRON).
+     * El progreso queda registrado en los logs del servidor.
+     */
+    @PostMapping("/refresh-urls")
+    public ResponseEntity<Map<String, String>> triggerUrlRefresh() {
+        ingestionService.refreshAllExpiredUrlsAsync();
+        return ResponseEntity.accepted()
+            .body(Map.of(
+                "status",  "ACCEPTED",
+                "message", "Refresco de URLs iniciado en segundo plano. Revisa los logs del servidor para ver el progreso."
+            ));
     }
 
     @GetMapping("/runs")

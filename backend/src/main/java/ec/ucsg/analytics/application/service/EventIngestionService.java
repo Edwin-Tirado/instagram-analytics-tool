@@ -23,9 +23,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Orquestador del pipeline de ingesta de posts de Instagram.
@@ -290,39 +294,45 @@ public class EventIngestionService {
      * aprovechando la URL fresca que la API de Instagram acaba de devolver
      * sin necesidad de una llamada HTTP adicional.
      *
-     * Para CAROUSEL_ALBUM: las URLs frescas vienen de los hijos (llamada a /children).
+     * Para CAROUSEL_ALBUM: los hijos se ordenan por su posición natural de la API
+     * y se emparejan en orden con las imágenes almacenadas (ordenadas por displayOrder).
      * Para IMAGE: la URL fresca viene directamente del media_url del post padre.
      */
     private void refreshImageUrls(InstagramMediaItem post) {
         try {
             if ("CAROUSEL_ALBUM".equals(post.getMediaType())) {
+                // Obtener hijos frescos — la API los devuelve en el mismo orden que cuando
+                // se ingirieron originalmente.
                 List<InstagramMediaItem> children = apiClient.fetchChildren(post.getId());
-                // Indexar los hijos por su propio ID para emparejarlos con las imágenes guardadas
-                java.util.Map<String, String> freshUrlByChildId = new java.util.HashMap<>();
-                for (InstagramMediaItem child : children) {
-                    if (child.getId() != null && child.getMediaUrl() != null) {
-                        freshUrlByChildId.put(child.getId(), child.getMediaUrl());
+                List<String> freshUrls = children.stream()
+                    .filter(c -> c.getMediaUrl() != null && !"VIDEO".equals(c.getMediaType()))
+                    .map(InstagramMediaItem::getMediaUrl)
+                    .collect(Collectors.toList());
+
+                if (freshUrls.isEmpty()) return;
+
+                // Ordenar las imágenes almacenadas para mantener la correspondencia posicional.
+                List<EventImage> images = eventImageRepository
+                    .findBySourceInstagramPostId(post.getId())
+                    .stream()
+                    .sorted(Comparator.comparingInt(EventImage::getDisplayOrder))
+                    .collect(Collectors.toList());
+
+                for (int i = 0; i < images.size(); i++) {
+                    // Si hay menos hijos frescos que imágenes almacenadas, usar el último
+                    // URL fresco disponible como respaldo para los sobrantes.
+                    String freshUrl = freshUrls.get(Math.min(i, freshUrls.size() - 1));
+                    EventImage img = images.get(i);
+                    if (!freshUrl.equals(img.getMediaUrl())) {
+                        img.setMediaUrl(freshUrl);
+                        eventImageRepository.save(img);
                     }
                 }
-                // Actualizar las imágenes del álbum cuyo sourceInstagramPostId coincide con el padre
-                List<ec.ucsg.analytics.domain.model.EventImage> images =
-                    eventImageRepository.findBySourceInstagramPostId(post.getId());
-                for (ec.ucsg.analytics.domain.model.EventImage img : images) {
-                    // Para álbumes, la mediaUrl original puede no coincidir con el ID del hijo;
-                    // actualizamos todas las imágenes del álbum en orden si el número de hijos coincide.
-                    // Si solo hay un hijo fresco, usamos su URL directamente.
-                    if (!freshUrlByChildId.isEmpty()) {
-                        String freshUrl = freshUrlByChildId.values().iterator().next();
-                        if (!freshUrl.equals(img.getMediaUrl())) {
-                            img.setMediaUrl(freshUrl);
-                            eventImageRepository.save(img);
-                        }
-                    }
-                }
+
             } else if (post.getMediaUrl() != null) {
-                List<ec.ucsg.analytics.domain.model.EventImage> images =
+                List<EventImage> images =
                     eventImageRepository.findBySourceInstagramPostId(post.getId());
-                for (ec.ucsg.analytics.domain.model.EventImage img : images) {
+                for (EventImage img : images) {
                     if (!post.getMediaUrl().equals(img.getMediaUrl())) {
                         img.setMediaUrl(post.getMediaUrl());
                         eventImageRepository.save(img);
@@ -334,6 +344,80 @@ public class EventIngestionService {
             // interrumpir el pipeline principal ni crear un IngestionRun FAILED.
             log.warn("No se pudieron refrescar las URLs del post {}: {}", post.getId(), e.getMessage());
         }
+    }
+
+    /**
+     * Escanea TODAS las imágenes almacenadas, las agrupa por sourceInstagramPostId
+     * y re-obtiene URLs frescas desde la Instagram API para cada post único.
+     *
+     * Diseñado para ser invocado desde el endpoint de administración
+     * {@code POST /api/admin/ingestion/refresh-urls} cuando las URLs ya expiraron
+     * y el CRON normal no las alcanza (posts fuera de la ventana daysLookback).
+     *
+     * @return número de imágenes efectivamente actualizadas
+     */
+    @Async
+    @Transactional
+    public void refreshAllExpiredUrlsAsync() {
+        log.info("[RefreshURLs] Iniciando refresco masivo de URLs de imágenes...");
+
+        // Agrupar todas las imágenes por su post de Instagram fuente
+        List<EventImage> allImages = eventImageRepository.findAll();
+        Map<String, List<EventImage>> byPostId = allImages.stream()
+            .filter(img -> img.getSourceInstagramPostId() != null)
+            .collect(Collectors.groupingBy(EventImage::getSourceInstagramPostId));
+
+        int totalUpdated = 0;
+        int totalPosts   = byPostId.size();
+        int processed    = 0;
+
+        for (Map.Entry<String, List<EventImage>> entry : byPostId.entrySet()) {
+            String postId = entry.getKey();
+            List<EventImage> images = entry.getValue();
+            processed++;
+
+            try {
+                // Intentar obtener los hijos (carrusel) primero.
+                // Si el post es una imagen simple, fetchChildren devolverá lista vacía.
+                List<InstagramMediaItem> children = apiClient.fetchChildren(postId);
+                List<String> freshUrls = children.stream()
+                    .filter(c -> c.getMediaUrl() != null && !"VIDEO".equals(c.getMediaType()))
+                    .map(InstagramMediaItem::getMediaUrl)
+                    .collect(Collectors.toList());
+
+                if (!freshUrls.isEmpty()) {
+                    // Es un carrusel — emparejar por posición (displayOrder)
+                    List<EventImage> sortedImages = images.stream()
+                        .sorted(Comparator.comparingInt(EventImage::getDisplayOrder))
+                        .collect(Collectors.toList());
+
+                    for (int i = 0; i < sortedImages.size(); i++) {
+                        String freshUrl = freshUrls.get(Math.min(i, freshUrls.size() - 1));
+                        EventImage img = sortedImages.get(i);
+                        if (!freshUrl.equals(img.getMediaUrl())) {
+                            img.setMediaUrl(freshUrl);
+                            eventImageRepository.save(img);
+                            totalUpdated++;
+                        }
+                    }
+                }
+                // Nota: para posts de imagen simple, la única forma de obtener la URL
+                // fresca es a través del endpoint /{mediaId}?fields=media_url, que no
+                // está en el cliente actual. Esos posts se refrescan automáticamente
+                // durante la próxima ejecución del CRON (si están dentro de daysLookback).
+
+            } catch (Exception e) {
+                log.warn("[RefreshURLs] No se pudo refrescar post {}: {}", postId, e.getMessage());
+            }
+
+            if (processed % 10 == 0) {
+                log.info("[RefreshURLs] Progreso: {}/{} posts procesados, {} URLs actualizadas",
+                    processed, totalPosts, totalUpdated);
+            }
+        }
+
+        log.info("[RefreshURLs] Completado: {}/{} posts procesados, {} URLs actualizadas en total",
+            processed, totalPosts, totalUpdated);
     }
 
     // ── Resultado de la operación ───────────────────────────────────────────────

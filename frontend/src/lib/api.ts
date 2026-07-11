@@ -203,6 +203,17 @@ export async function adminGetIngestionRun(id: string): Promise<IngestionRun> {
 }
 
 /**
+ * Dispara el refresco masivo de URLs de imágenes expiradas.
+ * El backend acepta la petición de inmediato (202 Accepted) y ejecuta el
+ * trabajo en segundo plano — las imágenes con 403 se corrigen en los logs.
+ */
+export async function adminRefreshImageUrls(): Promise<{ status: string; message: string }> {
+  return apiFetch<{ status: string; message: string }>('/api/admin/ingestion/refresh-urls', {
+    method: 'POST',
+  })
+}
+
+/**
  * Reintenta asignar zona a los eventos sin ninguna, usando el caption ya
  * guardado — no vuelve a llamar a Instagram. Útil después de reemplazar
  * el catálogo de zonas.
