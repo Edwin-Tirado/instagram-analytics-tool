@@ -15,6 +15,10 @@ const WARNING_BEFORE_MS = 60 * 1000
  * Los eventos que reinician el temporizador son: mousemove, mousedown,
  * keydown, touchstart y scroll.
  *
+ * IMPORTANTE: mientras el modal de advertencia está visible, los eventos
+ * de actividad NO reinician el timer — solo el botón "Seguir conectado"
+ * puede hacerlo (llamando a resetTimer() directamente).
+ *
  * @param onIdle  Función que se invoca al confirmar inactividad (cierra sesión).
  * @param enabled Permite deshabilitar el timer (ej.: usuario no autenticado).
  */
@@ -27,9 +31,14 @@ export function useIdleTimer(onIdle: () => void, enabled = true) {
   const warnTimer    = useRef<ReturnType<typeof setTimeout> | null>(null)
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const onIdleRef    = useRef(onIdle)
+  // Rastrear si el modal de aviso está activo para ignorar eventos de actividad
+  const isWarningRef = useRef(false)
 
   // Mantener la referencia a onIdle actualizada sin re-suscribir eventos
   useEffect(() => { onIdleRef.current = onIdle }, [onIdle])
+
+  // Sincronizar isWarningRef con el estado
+  useEffect(() => { isWarningRef.current = isWarning }, [isWarning])
 
   const clearAllTimers = useCallback(() => {
     if (idleTimer.current)    clearTimeout(idleTimer.current)
@@ -58,10 +67,12 @@ export function useIdleTimer(onIdle: () => void, enabled = true) {
     if (!enabled) return
     clearAllTimers()
     setIsWarning(false)
+    isWarningRef.current = false
 
     // Timer de advertencia
     warnTimer.current = setTimeout(() => {
       setIsWarning(true)
+      isWarningRef.current = true
       startCountdown()
     }, IDLE_TIMEOUT_MS - WARNING_BEFORE_MS)
 
@@ -69,6 +80,7 @@ export function useIdleTimer(onIdle: () => void, enabled = true) {
     idleTimer.current = setTimeout(() => {
       clearAllTimers()
       setIsWarning(false)
+      isWarningRef.current = false
       onIdleRef.current()
     }, IDLE_TIMEOUT_MS)
   }, [enabled, clearAllTimers, startCountdown])
@@ -82,7 +94,12 @@ export function useIdleTimer(onIdle: () => void, enabled = true) {
       'touchstart', 'scroll', 'click',
     ] as const
 
-    const handler = () => resetTimer()
+    // Si el modal de aviso está abierto, ignorar la actividad —
+    // solo el botón "Seguir conectado" puede reiniciar el timer.
+    const handler = () => {
+      if (isWarningRef.current) return
+      resetTimer()
+    }
 
     EVENTS.forEach(ev => window.addEventListener(ev, handler, { passive: true }))
     resetTimer() // arrancar al montar
@@ -91,7 +108,9 @@ export function useIdleTimer(onIdle: () => void, enabled = true) {
       EVENTS.forEach(ev => window.removeEventListener(ev, handler))
       clearAllTimers()
     }
-  }, [enabled, resetTimer, clearAllTimers])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled]) // Intencionalmente omitimos resetTimer/clearAllTimers para evitar re-suscripciones
+                // innecesarias; resetTimer/clearAllTimers son estables gracias a useCallback([]).
 
   return { isWarning, secondsRemaining, resetTimer }
 }

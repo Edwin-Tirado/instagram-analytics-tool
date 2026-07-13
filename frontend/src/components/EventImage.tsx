@@ -11,8 +11,14 @@ interface EventImageProps {
 /**
  * Muestra una imagen SIN recortarla ni estirarla.
  * Si la URL de Instagram expira o da error CORS, muestra un placeholder.
- * Usa un <img> oculto para detectar fallos de carga; el fondo desenfocado
- * (bg-cover) rellena el espacio y la imagen completa (bg-contain) se centra.
+ *
+ * Usa dos <img> reales:
+ *   1. Una imagen de fondo escalada y difuminada (object-cover + blur).
+ *   2. La imagen principal centrada con object-contain.
+ *
+ * Se usa crossOrigin="anonymous" y referrerPolicy="no-referrer" para que
+ * imágenes bloqueadas por CORS/referrer (ej.: CDN de Instagram) disparen
+ * correctamente onError en lugar de quedar silenciosamente en blanco.
  */
 export default function EventImage({ src, alt = '', className = '' }: EventImageProps) {
   const [failed, setFailed] = useState(false)
@@ -27,25 +33,26 @@ export default function EventImage({ src, alt = '', className = '' }: EventImage
 
   return (
     <div className={`relative overflow-hidden ${className}`}>
-      {/* Imagen oculta para detectar errores de carga */}
+      {/* Imagen de fondo desenfocada — rellena el espacio con la misma imagen */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
         alt=""
-        className="hidden"
+        aria-hidden="true"
+        crossOrigin="anonymous"
+        referrerPolicy="no-referrer"
+        className="absolute inset-0 w-full h-full object-cover scale-110 blur-md opacity-50 pointer-events-none select-none"
         onError={() => setFailed(true)}
-        aria-hidden="true"
       />
-      <div
-        className="absolute inset-0 bg-cover bg-center scale-110 blur-md opacity-50"
-        style={{ backgroundImage: `url(${src})` }}
-        aria-hidden="true"
-      />
-      <div
-        className="absolute inset-0 bg-contain bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${src})` }}
-        role="img"
-        aria-label={alt}
+      {/* Imagen principal — sin recortar, centrada, aspect-ratio original */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={alt}
+        crossOrigin="anonymous"
+        referrerPolicy="no-referrer"
+        className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+        onError={() => setFailed(true)}
       />
     </div>
   )
