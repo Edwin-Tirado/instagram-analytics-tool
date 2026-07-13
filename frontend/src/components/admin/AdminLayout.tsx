@@ -40,7 +40,7 @@ export default function AdminLayout({ children }: Props) {
   }, [router])
 
   // ── Cierre automático por inactividad ────────────────────────────────────
-  const { isWarning, secondsRemaining, resetTimer } = useIdleTimer(
+  const { showModal, countdown, stayLoggedIn, doLogout } = useIdleTimer(
     handleLogout,
     Boolean(user), // solo activo cuando hay sesión cargada
   )
@@ -49,12 +49,12 @@ export default function AdminLayout({ children }: Props) {
 
   return (
     <div className="min-h-screen flex bg-[#f9f6f1]">
-      {/* Modal de advertencia de inactividad */}
-      {isWarning && (
+      {/* Modal de inactividad */}
+      {showModal && (
         <IdleWarningModal
-          secondsRemaining={secondsRemaining}
-          onStayLoggedIn={resetTimer}
-          onLogout={handleLogout}
+          countdown={countdown}
+          onStay={stayLoggedIn}
+          onLogout={doLogout}
         />
       )}
 
