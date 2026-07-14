@@ -318,6 +318,12 @@ export async function adminChangeRole(id: string, role: string): Promise<AdminUs
   })
 }
 
+export async function adminResetPassword(id: string): Promise<{ tempPassword: string; email: string }> {
+  return apiFetch<{ tempPassword: string; email: string }>(`/api/admin/users/${id}/reset-password`, {
+    method: 'PATCH',
+  })
+}
+
 // ── Admin: registro de auditoría de ediciones/eliminaciones ──────────────────
 
 /**

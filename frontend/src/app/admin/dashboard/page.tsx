@@ -6,7 +6,7 @@ import DataTable from '@/components/admin/DataTable'
 import {
   adminApproveEvent, adminDeleteEvent, adminGetEvents,
   adminRejectEvent, adminUpdateEvent,
-  adminGetUsers, adminToggleLock, adminToggleEnabled, adminChangeRole,
+  adminGetUsers, adminToggleLock, adminToggleEnabled, adminChangeRole, adminResetPassword,
   supervisorApproveEvent, supervisorRejectEvent, supervisorGetEvents,
   supervisorUpdateEvent, supervisorDeleteEvent,
   getZones, createZone, adminRematchZones,
@@ -595,6 +595,10 @@ function UsersTab() {
   const [error, setError]           = useState<string | null>(null)
   const [userFilter, setUserFilter] = useState<UserFilter>('all')
 
+  // ── Reset de contraseña ───────────────────────────────────────────────────────
+  const [resetResult, setResetResult] = useState<{ tempPassword: string; email: string } | null>(null)
+  const [resetting, setResetting]     = useState<string | null>(null)   // id del usuario en proceso
+
   const PAGE_SIZE = 20
 
   const load = useCallback(async (p: number) => {
@@ -620,6 +624,16 @@ function UsersTab() {
       const updated = await adminToggleEnabled(u.id)
       setUsers(prev => prev.map(x => x.id === updated.id ? updated : x))
     } catch (e: any) { setError(e.message) }
+  }
+
+  async function handleResetPassword(u: AdminUser) {
+    if (!confirm(`¿Resetear la contraseña de ${u.fullName || u.email}? Se generará una contraseña temporal.`)) return
+    setResetting(u.id)
+    try {
+      const result = await adminResetPassword(u.id)
+      setResetResult(result)
+    } catch (e: any) { setError(e.message) }
+    finally { setResetting(null) }
   }
 
   async function handleChangeRole(u: AdminUser, newRole: string) {
@@ -778,6 +792,17 @@ function UsersTab() {
                         >
                           {u.enabled ? 'Desactivar' : 'Activar'}
                         </button>
+                        {/* Resetear contraseña */}
+                        {!u.roles.includes('ROLE_ADMIN') && (
+                          <button
+                            onClick={() => handleResetPassword(u)}
+                            disabled={resetting === u.id}
+                            title="Generar contraseña temporal"
+                            className="text-xs font-medium text-amber-700 hover:text-amber-900 disabled:opacity-50"
+                          >
+                            {resetting === u.id ? '…' : '🔑 Resetear'}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -795,6 +820,43 @@ function UsersTab() {
           <span className="text-sm text-[#7a6652]">Página {page + 1} de {totalPages}</span>
           <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
             className="px-3 py-1.5 rounded border border-[#e8ddd4] text-sm disabled:opacity-40 hover:border-[#931934] transition-colors">→</button>
+        </div>
+      )}
+
+      {/* ── Modal: contraseña temporal generada ─────────────────────────────── */}
+      {resetResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🔑</span>
+              <h3 className="font-bold text-[#2d1b0e] text-lg">Contraseña temporal generada</h3>
+            </div>
+            <p className="text-sm text-[#7a6652]">
+              Usuario: <span className="font-semibold text-[#2d1b0e]">{resetResult.email}</span>
+            </p>
+            <div className="flex items-center gap-2 bg-[#f9f6f1] border border-[#e8ddd4] rounded-xl px-4 py-3">
+              <span className="flex-1 font-mono font-bold text-[#931934] text-lg tracking-widest select-all">
+                {resetResult.tempPassword}
+              </span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(resetResult.tempPassword)
+                }}
+                className="text-xs bg-[#931934] text-white px-3 py-1.5 rounded-lg hover:bg-[#7a1528] transition-colors font-semibold"
+              >
+                Copiar
+              </button>
+            </div>
+            <p className="text-xs text-[#7a6652] leading-relaxed">
+              ⚠️ Esta contraseña solo se muestra <strong>una vez</strong>. Compártela con el usuario de forma segura. El usuario podrá iniciar sesión con ella inmediatamente.
+            </p>
+            <button
+              onClick={() => setResetResult(null)}
+              className="w-full py-2.5 rounded-xl bg-[#2d1b0e] text-white font-semibold text-sm hover:bg-[#1a0f07] transition-colors"
+            >
+              Cerrar
+            </button>
+          </div>
         </div>
       )}
     </div>

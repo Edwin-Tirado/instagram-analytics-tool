@@ -11,9 +11,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -26,6 +28,7 @@ public class AdminUserController {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @GetMapping
     public Page<Map<String, Object>> list(
@@ -85,6 +88,24 @@ public class AdminUserController {
         userRepository.save(user);
 
         return ResponseEntity.ok(toMap(user));
+    }
+
+    @PatchMapping("/{id}/reset-password")
+    public ResponseEntity<Map<String, Object>> resetPassword(@PathVariable UUID id) {
+        AppUser user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+
+        // Genera una contraseña temporal que cumple la política de seguridad:
+        // mayúscula, minúscula, número y carácter especial (mínimo 8 caracteres).
+        String tempPassword = "Temp" + (100000 + new Random().nextInt(900000)) + "!";
+        user.setPassword(passwordEncoder.encode(tempPassword));
+        userRepository.save(user);
+
+        return ResponseEntity.ok(Map.of(
+                "tempPassword", tempPassword,
+                "email",        user.getEmail(),
+                "message",      "Contraseña reseteada. Compártela con el usuario de forma segura."
+        ));
     }
 
     private Map<String, Object> toMap(AppUser u) {
