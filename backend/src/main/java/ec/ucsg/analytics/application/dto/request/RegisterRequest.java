@@ -16,6 +16,10 @@ public record RegisterRequest(
 
     @NotBlank(message = "El correo es obligatorio")
     @Email(message = "Formato de correo inválido")
+    @Pattern(
+        regexp = "^[a-zA-Z0-9._%+\\-]+@cu\\.ucsg\\.edu\\.ec$",
+        message = "Solo se permiten correos institucionales con dominio @cu.ucsg.edu.ec"
+    )
     String email,
 
     @NotBlank(message = "La contraseña es obligatoria")

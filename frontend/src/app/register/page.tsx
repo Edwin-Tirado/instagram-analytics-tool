@@ -35,7 +35,8 @@ export default function RegisterPage() {
   const [error,     setError]     = useState<string | null>(null)
   const [success,   setSuccess]   = useState(false)
 
-  const isValid = fullName.trim().length >= 2 && email.trim().length > 0 && password.length >= 8
+  const isInstitutionalEmail = email.trim().toLowerCase().endsWith('@cu.ucsg.edu.ec')
+  const isValid = fullName.trim().length >= 2 && isInstitutionalEmail && password.length >= 8
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -209,7 +210,7 @@ export default function RegisterPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="correo@ejemplo.com"
+                placeholder="usuario@cu.ucsg.edu.ec"
                 disabled={loading || success}
                 className="
                   w-full px-4 py-[13px] rounded-xl
@@ -221,6 +222,17 @@ export default function RegisterPage() {
                   disabled:opacity-50 disabled:cursor-not-allowed
                 "
               />
+              {/* Indicador de dominio institucional */}
+              {email.length > 0 && !isInstitutionalEmail && (
+                <p className="mt-[5px] text-[0.78rem] text-red-500 font-medium">
+                  El correo debe pertenecer al dominio @cu.ucsg.edu.ec
+                </p>
+              )}
+              {email.length > 0 && isInstitutionalEmail && (
+                <p className="mt-[5px] text-[0.78rem] text-green-600 font-medium">
+                  ✓ Correo institucional válido
+                </p>
+              )}
             </div>
 
             {/* Contraseña */}

@@ -52,8 +52,16 @@ public class AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
 
-        // 1. Verificar que el email no esté ya registrado
-        if (userRepository.existsByEmail(request.email().toLowerCase())) {
+        // 1. Verificar dominio institucional (Capa 2 — defensa programática)
+        String emailLower = request.email().toLowerCase();
+        if (!emailLower.endsWith("@cu.ucsg.edu.ec")) {
+            throw new IllegalArgumentException(
+                "Solo se permiten correos institucionales con dominio @cu.ucsg.edu.ec"
+            );
+        }
+
+        // 2. Verificar que el email no esté ya registrado
+        if (userRepository.existsByEmail(emailLower)) {
             throw new UserAlreadyExistsException(request.email());
         }
 
@@ -65,7 +73,7 @@ public class AuthService {
 
         // 4. Persistir el nuevo usuario
         AppUser newUser = AppUser.builder()
-            .email(request.email().toLowerCase())
+            .email(emailLower)
             .password(passwordEncoder.encode(request.password()))
             .fullName(request.fullName().trim())
             .roles(Set.of(defaultRole))
