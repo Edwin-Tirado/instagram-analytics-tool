@@ -12,6 +12,7 @@ interface Props { children: React.ReactNode }
 const NAV_ADMIN = [
   { href: '/admin/dashboard', label: 'Gestión de Eventos', icon: '🗒️' },
   { href: '/admin/dashboard?tab=users', label: 'Usuarios', icon: '👥' },
+  { href: '/admin/dashboard?tab=locations', label: 'Ubicaciones', icon: '📍' },
   { href: '/supervisor/logs', label: 'Historial Ingesta', icon: '📊' },
   { href: '/admin/dashboard?tab=instagram', label: 'Instagram', icon: '📸' },
   { href: '/admin/audit', label: 'Registro de Ediciones', icon: '📝' },

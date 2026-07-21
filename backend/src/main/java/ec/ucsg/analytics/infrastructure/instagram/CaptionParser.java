@@ -1,4 +1,4 @@
-package ec.ucsg.analytics.infrastructure.instagram;
+ package ec.ucsg.analytics.infrastructure.instagram;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

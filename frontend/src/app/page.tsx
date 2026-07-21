@@ -37,6 +37,7 @@ function splitIntoColumns(names: string[], numCols: number) {
 // Cargas dinámicas para evitar que Leaflet intente ejecutarse en SSR
 const EventModal = dynamic(() => import('@/components/EventModal'), { ssr: false })
 const MapModal   = dynamic(() => import('@/components/MapModal'), { ssr: false })
+const CampusMap  = dynamic(() => import('@/components/CampusMap'), { ssr: false })
 
 
 // ── Constantes de categoría ──────────────────────────────────────────────────
@@ -69,6 +70,7 @@ export default function HomePage() {
   const [toastMsg, setToastMsg]         = useState('✅ Guardado en tus recordatorios')
   const [activeMapFacility, setActiveMapFacility] = useState<{ title: string; lat: number; lng: number } | null>(null)
   const [zones, setZones]               = useState<Zone[]>([])
+  const [view, setView]                 = useState<'lista' | 'mapa'>('lista')
 
   // Zonas del footer — en vivo desde el backend, así que cualquier ubicación
   // nueva que se agregue desde "Editar evento" aparece acá automáticamente.
@@ -210,8 +212,36 @@ export default function HomePage() {
           onSelect={setActiveCategory}
         />
 
-        {/* Event list */}
-        {filtered.length > 0 ? (
+        {/* Alternar entre vista de lista y mapa del campus */}
+        <div className="flex gap-[10px] mb-[26px]">
+          {([
+            { key: 'lista', label: '🗒️ Lista' },
+            { key: 'mapa',  label: '🗺️ Mapa del Campus' },
+          ] as const).map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setView(key)}
+              className={`
+                px-[18px] py-[9px] rounded-[24px]
+                text-[0.8rem] font-bold cursor-pointer whitespace-nowrap
+                border transition-all duration-150
+                ${view === key
+                  ? 'bg-ucsg-brown-900 border-ucsg-brown-900 text-white'
+                  : 'bg-white border-ucsg-border text-ucsg-brown-400 hover:border-ucsg-border-dark hover:text-ucsg-brown'}
+              `}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {view === 'mapa' ? (
+          <CampusMap
+            events={filtered.filter((ev) => !ev.isPast && ev.coordinates)}
+            zones={zones}
+            onSelectEvent={setSelectedId}
+          />
+        ) : filtered.length > 0 ? (
           <div className="flex flex-col gap-5">
             {filtered.map((ev) => (
               <EventCard

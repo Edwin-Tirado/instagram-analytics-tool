@@ -9,7 +9,7 @@ import {
   adminGetUsers, adminToggleLock, adminToggleEnabled, adminChangeRole, adminResetPassword,
   supervisorApproveEvent, supervisorRejectEvent, supervisorGetEvents,
   supervisorUpdateEvent, supervisorDeleteEvent,
-  getZones, createZone, adminRematchZones,
+  getZones, createZone, updateZoneName, adminRematchZones,
   getInstagramTokenStatus, updateInstagramToken, InstagramTokenStatus,
   supervisorGetReminderCount, adminRefreshImageUrls,
 } from '@/lib/api'
@@ -863,6 +863,168 @@ function UsersTab() {
   )
 }
 
+// ── Tab Ubicaciones ──────────────────────────────────────────────────────────
+
+function LocationsTab() {
+  const [zones, setZones]     = useState<Zone[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError]     = useState<string | null>(null)
+  const [search, setSearch]   = useState('')
+
+  const [editingId, setEditingId]   = useState<number | null>(null)
+  const [editValue, setEditValue]   = useState('')
+  const [saving, setSaving]         = useState(false)
+  const [saveError, setSaveError]   = useState<string | null>(null)
+  const [savedMsg, setSavedMsg]     = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true); setError(null)
+    try {
+      const data = await getZones()
+      setZones(data)
+    } catch (e: any) { setError(e.message ?? 'Error al cargar ubicaciones') }
+    finally { setLoading(false) }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  function startEdit(zone: Zone) {
+    setEditingId(zone.id)
+    setEditValue(zone.name)
+    setSaveError(null)
+    setSavedMsg(null)
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+    setEditValue('')
+    setSaveError(null)
+  }
+
+  async function handleSave(zone: Zone) {
+    const trimmed = editValue.trim()
+    if (!trimmed) { setSaveError('El nombre es obligatorio'); return }
+    if (trimmed === zone.name) { cancelEdit(); return }
+
+    setSaving(true); setSaveError(null)
+    try {
+      const updated = await updateZoneName(zone.id, trimmed)
+      setZones(prev => prev.map(z => z.id === updated.id ? updated : z))
+      setSavedMsg(`Ubicación renombrada a "${updated.name}"`)
+      setEditingId(null)
+      setEditValue('')
+    } catch (e: any) {
+      setSaveError(e.message ?? 'No se pudo renombrar la ubicación')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const filtered = zones
+    .filter(z => z.name.toLowerCase().includes(search.trim().toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name, 'es'))
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-[#2d1b0e]">Ubicaciones del Campus</h1>
+        <p className="text-sm text-[#7a6652] mt-0.5">
+          {zones.length} ubicación{zones.length !== 1 ? 'es' : ''} registrada{zones.length !== 1 ? 's' : ''} — renombra las que necesiten corrección.
+        </p>
+      </div>
+
+      <input
+        type="text"
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder="Buscar ubicación…"
+        className="w-full max-w-sm border border-[#e8ddd4] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#931934]"
+      />
+
+      {savedMsg && <div className="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg">✅ {savedMsg}</div>}
+      {error && <div className="bg-red-50 border border-red-200 text-red-800 text-sm px-4 py-3 rounded-lg">{error}</div>}
+
+      <div className="bg-white rounded-xl border border-[#e8ddd4] overflow-hidden">
+        {loading ? (
+          <div className="py-16 text-center text-[#7a6652] text-sm">Cargando…</div>
+        ) : filtered.length === 0 ? (
+          <div className="py-16 text-center text-[#7a6652] text-sm">Sin ubicaciones registradas.</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-[#f9f6f1] border-b border-[#e8ddd4]">
+              <tr>
+                <th className="text-left px-4 py-3 font-semibold text-[#2d1b0e]">Nombre</th>
+                <th className="text-left px-4 py-3 font-semibold text-[#2d1b0e]">Coordenadas</th>
+                <th className="text-right px-4 py-3 font-semibold text-[#2d1b0e]">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#f0e8df]">
+              {filtered.map(zone => (
+                <tr key={zone.id} className="hover:bg-[#fdf9f6] transition-colors">
+                  <td className="px-4 py-3">
+                    {editingId === zone.id ? (
+                      <div>
+                        <input
+                          type="text"
+                          value={editValue}
+                          onChange={e => setEditValue(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') handleSave(zone)
+                            if (e.key === 'Escape') cancelEdit()
+                          }}
+                          autoFocus
+                          className="w-full max-w-xs border border-[#931934] rounded-lg px-2 py-1.5 text-sm focus:outline-none"
+                        />
+                        {saveError && <p className="text-xs text-red-600 mt-1">{saveError}</p>}
+                      </div>
+                    ) : (
+                      <span className="font-medium text-[#2d1b0e]">{zone.name}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-[#7a6652]">
+                    {zone.latitude != null && zone.longitude != null
+                      ? `${zone.latitude.toFixed(6)}, ${zone.longitude.toFixed(6)}`
+                      : '—'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-2">
+                      {editingId === zone.id ? (
+                        <>
+                          <button
+                            onClick={() => handleSave(zone)}
+                            disabled={saving}
+                            className="text-green-700 hover:text-green-900 font-medium text-xs disabled:opacity-50 transition-colors"
+                          >
+                            {saving ? 'Guardando…' : 'Guardar'}
+                          </button>
+                          <button
+                            onClick={cancelEdit}
+                            disabled={saving}
+                            className="text-[#7a6652] hover:text-[#2d1b0e] font-medium text-xs disabled:opacity-50 transition-colors"
+                          >
+                            Cancelar
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => startEdit(zone)}
+                          className="text-blue-600 hover:text-blue-800 font-medium text-xs transition-colors"
+                        >
+                          Renombrar
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Tab Instagram ────────────────────────────────────────────────────────────
 
 function InstagramTab() {
@@ -968,7 +1130,10 @@ function AdminDashboardContent() {
 
   return (
     <AdminLayout>
-      {tab === 'users' ? <UsersTab /> : tab === 'instagram' ? <InstagramTab /> : <EventsTab />}
+      {tab === 'users' ? <UsersTab />
+        : tab === 'instagram' ? <InstagramTab />
+        : tab === 'locations' ? <LocationsTab />
+        : <EventsTab />}
     </AdminLayout>
   )
 }

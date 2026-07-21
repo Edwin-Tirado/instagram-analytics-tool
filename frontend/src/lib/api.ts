@@ -144,6 +144,14 @@ export async function createZone(body: { name: string; latitude: number; longitu
   })
 }
 
+/** Renombra una ubicación (zona) existente — solo ADMIN. */
+export async function updateZoneName(id: number, name: string): Promise<Zone> {
+  return apiFetch<Zone>(`/api/supervisor/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  })
+}
+
 // ── Recordatorios (requieren JWT) ────────────────────────────────────────────
 
 export async function getMyReminders(): Promise<ReminderRemoteResponse[]> {

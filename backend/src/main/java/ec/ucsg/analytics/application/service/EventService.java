@@ -2,6 +2,7 @@ package ec.ucsg.analytics.application.service;
 
 import ec.ucsg.analytics.application.dto.request.CreateZoneRequest;
 import ec.ucsg.analytics.application.dto.request.UpdateEventRequest;
+import ec.ucsg.analytics.application.dto.request.UpdateZoneRequest;
 import ec.ucsg.analytics.application.dto.response.AuditLogResponse;
 import ec.ucsg.analytics.application.dto.response.EventResponse;
 import ec.ucsg.analytics.application.dto.response.EventSummaryResponse;
@@ -100,6 +101,29 @@ public class EventService {
 
         Zone saved = zoneRepository.save(zone);
         log.info("Nueva ubicación creada: '{}' ({}, {})", name, request.latitude(), request.longitude());
+        return toZoneResponse(saved);
+    }
+
+    /**
+     * Renombra una ubicación (zona) existente — usada desde el panel de
+     * administrador para corregir/actualizar el nombre mostrado sin tocar
+     * las coordenadas ni los eventos ya asignados a esa zona.
+     */
+    @Transactional
+    public ZoneResponse updateZoneName(Long id, UpdateZoneRequest request) {
+        Zone zone = zoneRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Zona no encontrada: " + id));
+
+        String newName = request.name().trim();
+        zoneRepository.findByNameIgnoreCase(newName).ifPresent(existing -> {
+            if (!existing.getId().equals(id)) {
+                throw new IllegalStateException("Ya existe una ubicación con ese nombre: " + newName);
+            }
+        });
+
+        zone.setName(newName);
+        Zone saved = zoneRepository.save(zone);
+        log.info("Ubicación #{} renombrada a '{}'", id, newName);
         return toZoneResponse(saved);
     }
 
