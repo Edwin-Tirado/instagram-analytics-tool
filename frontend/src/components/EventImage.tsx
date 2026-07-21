@@ -16,9 +16,12 @@ interface EventImageProps {
  *   1. Una imagen de fondo escalada y difuminada (object-cover + blur).
  *   2. La imagen principal centrada con object-contain.
  *
- * Se usa crossOrigin="anonymous" y referrerPolicy="no-referrer" para que
- * imágenes bloqueadas por CORS/referrer (ej.: CDN de Instagram) disparen
- * correctamente onError en lugar de quedar silenciosamente en blanco.
+ * Usa referrerPolicy="no-referrer" para evitar bloqueos por referrer.
+ * OJO: NO usar crossOrigin="anonymous" — el CDN de Instagram no responde
+ * con Access-Control-Allow-Origin, así que forzar modo CORS bloquea incluso
+ * las imágenes que todavía son válidas. Un <img> normal (sin crossOrigin)
+ * las muestra sin problema y onError sigue disparando igual para las que
+ * de verdad ya vencieron (403/404).
  */
 export default function EventImage({ src, alt = '', className = '' }: EventImageProps) {
   const [failed, setFailed] = useState(false)
@@ -39,7 +42,6 @@ export default function EventImage({ src, alt = '', className = '' }: EventImage
         src={src}
         alt=""
         aria-hidden="true"
-        crossOrigin="anonymous"
         referrerPolicy="no-referrer"
         className="absolute inset-0 w-full h-full object-cover scale-110 blur-md opacity-50 pointer-events-none select-none"
         onError={() => setFailed(true)}
@@ -49,7 +51,6 @@ export default function EventImage({ src, alt = '', className = '' }: EventImage
       <img
         src={src}
         alt={alt}
-        crossOrigin="anonymous"
         referrerPolicy="no-referrer"
         className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
         onError={() => setFailed(true)}

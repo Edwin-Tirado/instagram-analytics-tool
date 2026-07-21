@@ -190,7 +190,7 @@ export default function CampusMap({ events, zones, onSelectEvent }: CampusMapPro
   }, [ready, markersSignature])
 
   return (
-    <div className="relative w-full h-[520px] rounded-2xl overflow-hidden border border-ucsg-border">
+    <div className="relative isolate w-full h-[520px] rounded-2xl overflow-hidden border border-ucsg-border">
       {!ready && (
         <div className="
           absolute inset-0 flex items-center justify-center z-[1]
