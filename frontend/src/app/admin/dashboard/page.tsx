@@ -238,62 +238,6 @@ function EventsTab() {
     }
   }
 
-  // ── Limpieza en bloque: eventos con imagen rota (403/expirada) ─────────────
-  // Útil tras cambiar de cuenta de Instagram — las publicaciones de la cuenta
-  // anterior quedan con URLs de imagen que ya no se pueden refrescar (el token
-  // nuevo no tiene acceso a medios de la cuenta vieja).
-  const [scanningBroken, setScanningBroken] = useState(false)
-  const [brokenEvents, setBrokenEvents] = useState<AdminEvent[] | null>(null)
-  const [deletingBroken, setDeletingBroken] = useState(false)
-  const [cleanupMsg, setCleanupMsg] = useState<string | null>(null)
-
-  function testImageLoads(url: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      const img = new Image()
-      img.onload = () => resolve(true)
-      img.onerror = () => resolve(false)
-      img.src = url
-      setTimeout(() => resolve(false), 6000)
-    })
-  }
-
-  async function handleScanBrokenImages() {
-    setScanningBroken(true); setError(null); setCleanupMsg(null)
-    try {
-      // Trae todos los eventos aprobados (no solo la página actual) para no
-      // dejar ninguno fuera del escaneo.
-      const data = await adminGetEvents(0, 200, 'APPROVED')
-      const withImage = data.content.filter(ev => ev.imageUrls?.[0])
-      const results = await Promise.all(
-        withImage.map(async ev => ({ ev, ok: await testImageLoads(ev.imageUrls[0]) }))
-      )
-      const broken = results.filter(r => !r.ok).map(r => r.ev)
-      setBrokenEvents(broken)
-      if (broken.length === 0) setCleanupMsg('✅ No se encontraron eventos con imágenes rotas.')
-    } catch (e: any) {
-      setError(e.message ?? 'No se pudo escanear los eventos')
-    } finally {
-      setScanningBroken(false)
-    }
-  }
-
-  async function handleConfirmDeleteBroken() {
-    if (!brokenEvents || brokenEvents.length === 0) return
-    setDeletingBroken(true)
-    try {
-      for (const ev of brokenEvents) {
-        await adminDeleteEvent(ev.id)
-      }
-      setCleanupMsg(`🧹 Se eliminaron ${brokenEvents.length} evento(s) con imagen rota.`)
-      setBrokenEvents(null)
-      load(page, filter)
-    } catch (e: any) {
-      setError(e.message ?? 'No se pudo completar la limpieza — algunos eventos pueden no haberse eliminado')
-    } finally {
-      setDeletingBroken(false)
-    }
-  }
-
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
   return (
@@ -326,14 +270,6 @@ function EventsTab() {
                 {refreshingUrls ? 'Iniciando…' : 'Refrescar imágenes'}
               </button>
               <button
-                onClick={handleScanBrokenImages} disabled={scanningBroken}
-                title="Busca eventos aprobados cuya imagen ya no carga (ej. publicaciones de una cuenta de Instagram anterior) para eliminarlos en bloque"
-                className="flex items-center gap-2 bg-white border border-[#e8ddd4] text-[#7a6652] px-4 py-2 rounded-lg text-sm font-semibold hover:border-[#931934] hover:text-[#931934] disabled:opacity-60 transition-colors"
-              >
-                {scanningBroken ? <span className="inline-block w-4 h-4 border-2 border-[#931934]/30 border-t-[#931934] rounded-full animate-spin" /> : '🧹'}
-                {scanningBroken ? 'Escaneando…' : 'Limpiar imágenes rotas'}
-              </button>
-              <button
                 onClick={triggerSync} disabled={syncing}
                 className="flex items-center gap-2 bg-[#931934] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#7a1528] disabled:opacity-60 transition-colors"
               >
@@ -353,7 +289,6 @@ function EventsTab() {
         {syncMsg && <div className="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg">✅ {syncMsg}</div>}
         {rematchMsg && <div className="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg">✅ {rematchMsg}</div>}
         {refreshUrlsMsg && <div className="bg-blue-50 border border-blue-200 text-blue-800 text-sm px-4 py-3 rounded-lg">🖼️ {refreshUrlsMsg}</div>}
-        {cleanupMsg && <div className="bg-blue-50 border border-blue-200 text-blue-800 text-sm px-4 py-3 rounded-lg">{cleanupMsg}</div>}
         {(error || syncError) && <div className="bg-red-50 border border-red-200 text-red-800 text-sm px-4 py-3 rounded-lg">{error || syncError}</div>}
 
         <div className="flex gap-2">
@@ -500,40 +435,6 @@ function EventsTab() {
           </div>
         )}
       </div>
-
-      {brokenEvents && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 max-w-lg w-full shadow-xl">
-            <h3 className="font-bold text-[#2d1b0e] text-lg mb-2">
-              {brokenEvents.length} evento{brokenEvents.length !== 1 ? 's' : ''} con imagen rota
-            </h3>
-            <p className="text-sm text-[#7a6652] mb-4">
-              Se eliminarán permanentemente estos eventos aprobados (su imagen ya no carga — típico de publicaciones de una cuenta de Instagram anterior):
-            </p>
-            <ul className="max-h-64 overflow-y-auto space-y-1.5 mb-5 text-sm text-[#2d1b0e] bg-[#f9f6f1] border border-[#e8ddd4] rounded-lg p-3">
-              {brokenEvents.map(ev => (
-                <li key={ev.id} className="line-clamp-1">• {ev.title}</li>
-              ))}
-            </ul>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setBrokenEvents(null)}
-                disabled={deletingBroken}
-                className="flex-1 border border-[#e8ddd4] rounded-lg py-2 text-sm font-semibold text-[#7a6652] hover:border-[#931934] disabled:opacity-60 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleConfirmDeleteBroken}
-                disabled={deletingBroken}
-                className="flex-1 bg-red-600 text-white rounded-lg py-2 text-sm font-semibold hover:bg-red-700 disabled:opacity-60 transition-colors"
-              >
-                {deletingBroken ? `Eliminando…` : `Eliminar ${brokenEvents.length}`}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
