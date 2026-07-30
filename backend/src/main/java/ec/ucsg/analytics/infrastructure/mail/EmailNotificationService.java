@@ -326,6 +326,7 @@ public class EmailNotificationService {
               <img src="%s"
                    alt="%s"
                    width="600"
+                   referrerpolicy="no-referrer"
                    style="display:block;width:100%%;max-width:600px;height:auto;object-fit:cover;max-height:320px;" />
             </div>
             """.formatted(imageUrl, escapeHtml(event.getTitle()));
