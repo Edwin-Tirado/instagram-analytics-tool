@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { Camera, ClipboardList, FileEdit, History, MapPin, Users } from 'lucide-react'
 import { clearTokens, ensureRoleCookie, getStoredUser } from '@/lib/auth'
 import { useIdleTimer } from '@/lib/useIdleTimer'
 import IdleWarningModal from '@/components/IdleWarningModal'
@@ -10,17 +11,17 @@ import { AuthResponse } from '@/types'
 interface Props { children: React.ReactNode }
 
 const NAV_ADMIN = [
-  { href: '/admin/dashboard', label: 'Gestión de Eventos', icon: '🗒️' },
-  { href: '/admin/dashboard?tab=users', label: 'Usuarios', icon: '👥' },
-  { href: '/admin/dashboard?tab=locations', label: 'Ubicaciones', icon: '📍' },
-  { href: '/supervisor/logs', label: 'Historial Ingesta', icon: '📊' },
-  { href: '/admin/dashboard?tab=instagram', label: 'Instagram', icon: '📸' },
-  { href: '/admin/audit', label: 'Registro de Ediciones', icon: '📝' },
+  { href: '/admin/dashboard', label: 'Gestión de Eventos', icon: ClipboardList },
+  { href: '/admin/dashboard?tab=users', label: 'Usuarios', icon: Users },
+  { href: '/admin/dashboard?tab=locations', label: 'Ubicaciones', icon: MapPin },
+  { href: '/supervisor/logs', label: 'Historial Ingesta', icon: History },
+  { href: '/admin/dashboard?tab=instagram', label: 'Instagram', icon: Camera },
+  { href: '/admin/audit', label: 'Registro de Ediciones', icon: FileEdit },
 ]
 
 const NAV_SUPERVISOR = [
-  { href: '/admin/dashboard', label: 'Gestión de Eventos', icon: '🗒️' },
-  { href: '/supervisor/logs', label: 'Historial Ingesta', icon: '📊' },
+  { href: '/admin/dashboard', label: 'Gestión de Eventos', icon: ClipboardList },
+  { href: '/supervisor/logs', label: 'Historial Ingesta', icon: History },
 ]
 
 export default function AdminLayout({ children }: Props) {
@@ -69,6 +70,7 @@ export default function AdminLayout({ children }: Props) {
         <nav className="flex-1 px-3 py-4 space-y-1">
           {navItems.map((item) => {
             const active = pathname === item.href || pathname.startsWith(item.href.split('?')[0])
+            const Icon = item.icon
             return (
               <Link
                 key={item.href}
@@ -79,7 +81,7 @@ export default function AdminLayout({ children }: Props) {
                     : 'text-white/75 hover:bg-white/10 hover:text-white'
                 }`}
               >
-                <span>{item.icon}</span>
+                <Icon size={17} strokeWidth={2} className="shrink-0" />
                 {item.label}
               </Link>
             )

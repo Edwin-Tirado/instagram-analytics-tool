@@ -1,8 +1,10 @@
 'use client'
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { ClipboardList, Image as ImageIcon, MapPin, RefreshCw } from 'lucide-react'
 import AdminLayout from '@/components/admin/AdminLayout'
 import DataTable from '@/components/admin/DataTable'
+import MapModal from '@/components/MapModal'
 import {
   adminApproveEvent, adminDeleteEvent, adminGetEvents,
   adminRejectEvent, adminUpdateEvent,
@@ -258,7 +260,7 @@ function EventsTab() {
                 title="Reintenta asignar zona a los eventos sin ninguna, usando el caption ya guardado (no llama a Instagram)"
                 className="flex items-center gap-2 bg-white border border-[#e8ddd4] text-[#7a6652] px-4 py-2 rounded-lg text-sm font-semibold hover:border-[#931934] hover:text-[#931934] disabled:opacity-60 transition-colors"
               >
-                {rematching ? <span className="inline-block w-4 h-4 border-2 border-[#931934]/30 border-t-[#931934] rounded-full animate-spin" /> : '📍'}
+                {rematching ? <span className="inline-block w-4 h-4 border-2 border-[#931934]/30 border-t-[#931934] rounded-full animate-spin" /> : <MapPin size={15} strokeWidth={2.25} />}
                 {rematching ? 'Re-emparejando…' : 'Re-emparejar zonas'}
               </button>
               <button
@@ -266,14 +268,14 @@ function EventsTab() {
                 title="Refresca todas las URLs de imágenes expiradas de Instagram (errores 403) en segundo plano"
                 className="flex items-center gap-2 bg-white border border-[#e8ddd4] text-[#7a6652] px-4 py-2 rounded-lg text-sm font-semibold hover:border-[#931934] hover:text-[#931934] disabled:opacity-60 transition-colors"
               >
-                {refreshingUrls ? <span className="inline-block w-4 h-4 border-2 border-[#931934]/30 border-t-[#931934] rounded-full animate-spin" /> : '🖼️'}
+                {refreshingUrls ? <span className="inline-block w-4 h-4 border-2 border-[#931934]/30 border-t-[#931934] rounded-full animate-spin" /> : <ImageIcon size={15} strokeWidth={2.25} />}
                 {refreshingUrls ? 'Iniciando…' : 'Refrescar imágenes'}
               </button>
               <button
                 onClick={triggerSync} disabled={syncing}
                 className="flex items-center gap-2 bg-[#931934] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#7a1528] disabled:opacity-60 transition-colors"
               >
-                {syncing ? <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : '🔄'}
+                {syncing ? <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <RefreshCw size={15} strokeWidth={2.25} />}
                 {syncing ? 'Sincronizando…' : 'Sincronizar Instagram'}
               </button>
             </div>
@@ -281,7 +283,7 @@ function EventsTab() {
           {/* Indicador de rol para supervisor */}
           {isSupervisor && !isAdmin && (
             <span className="flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-semibold px-3 py-1.5 rounded-lg">
-              🗒️ Modo Supervisor — Gestión Completa
+              <ClipboardList size={14} strokeWidth={2.25} /> Modo Supervisor — Gestión Completa
             </span>
           )}
         </div>
@@ -870,6 +872,7 @@ function LocationsTab() {
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<string | null>(null)
   const [search, setSearch]   = useState('')
+  const [mapZone, setMapZone] = useState<Zone | null>(null)
 
   const [editingId, setEditingId]   = useState<number | null>(null)
   const [editValue, setEditValue]   = useState('')
@@ -954,7 +957,7 @@ function LocationsTab() {
             <thead className="bg-[#f9f6f1] border-b border-[#e8ddd4]">
               <tr>
                 <th className="text-left px-4 py-3 font-semibold text-[#2d1b0e]">Nombre</th>
-                <th className="text-left px-4 py-3 font-semibold text-[#2d1b0e]">Coordenadas</th>
+                <th className="text-left px-4 py-3 font-semibold text-[#2d1b0e]">Mapa</th>
                 <th className="text-right px-4 py-3 font-semibold text-[#2d1b0e]">Acciones</th>
               </tr>
             </thead>
@@ -981,10 +984,18 @@ function LocationsTab() {
                       <span className="font-medium text-[#2d1b0e]">{zone.name}</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs text-[#7a6652]">
-                    {zone.latitude != null && zone.longitude != null
-                      ? `${zone.latitude.toFixed(6)}, ${zone.longitude.toFixed(6)}`
-                      : '—'}
+                  <td className="px-4 py-3">
+                    {zone.latitude != null && zone.longitude != null ? (
+                      <button
+                        onClick={() => setMapZone(zone)}
+                        className="flex items-center gap-1.5 text-[#7a6652] hover:text-[#931934] font-medium text-xs transition-colors"
+                      >
+                        <MapPin size={14} strokeWidth={2.25} />
+                        Ver en mapa
+                      </button>
+                    ) : (
+                      <span className="text-xs text-[#b8a998]">Sin coordenadas</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
@@ -1021,6 +1032,15 @@ function LocationsTab() {
           </table>
         )}
       </div>
+
+      {mapZone && mapZone.latitude != null && mapZone.longitude != null && (
+        <MapModal
+          title={mapZone.name}
+          lat={mapZone.latitude}
+          lng={mapZone.longitude}
+          onClose={() => setMapZone(null)}
+        />
+      )}
     </div>
   )
 }

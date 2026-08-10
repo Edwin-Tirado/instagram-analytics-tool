@@ -12,6 +12,7 @@ import ec.ucsg.analytics.domain.repository.EventRepository;
 import ec.ucsg.analytics.domain.repository.IngestionRunRepository;
 import ec.ucsg.analytics.infrastructure.instagram.CaptionParser;
 import ec.ucsg.analytics.infrastructure.instagram.InstagramGraphApiClient;
+import ec.ucsg.analytics.infrastructure.instagram.InstagramImageUrlRefresher;
 import ec.ucsg.analytics.infrastructure.instagram.dto.InstagramMediaItem;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -55,12 +56,13 @@ public class EventIngestionService {
     private static final String AUTO_REJECT_REASON =
         "AUTO: contenido publicitario o spam detectado por el clasificador";
 
-    private final InstagramGraphApiClient    apiClient;
-    private final EventClassificationService classificationService;
-    private final ZoneMatchingService        zoneMatchingService;
-    private final EventRepository            eventRepository;
-    private final EventImageRepository       eventImageRepository;
-    private final IngestionRunRepository     ingestionRunRepository;
+    private final InstagramGraphApiClient      apiClient;
+    private final InstagramImageUrlRefresher   imageUrlRefresher;
+    private final EventClassificationService   classificationService;
+    private final ZoneMatchingService          zoneMatchingService;
+    private final EventRepository              eventRepository;
+    private final EventImageRepository         eventImageRepository;
+    private final IngestionRunRepository       ingestionRunRepository;
 
     // ── Punto de entrada (llamado desde el CRON job y el AdminController) ──
 
@@ -376,50 +378,7 @@ public class EventIngestionService {
             List<EventImage> images = entry.getValue();
             processed++;
 
-            try {
-                // ── Intentar primero como carrusel ────────────────────────
-                List<InstagramMediaItem> children = apiClient.fetchChildren(postId);
-                List<String> freshUrls = children.stream()
-                    .filter(c -> c.getMediaUrl() != null && !"VIDEO".equals(c.getMediaType()))
-                    .map(InstagramMediaItem::getMediaUrl)
-                    .collect(Collectors.toList());
-
-                if (!freshUrls.isEmpty()) {
-                    // Es un carrusel — emparejar por posición (displayOrder)
-                    List<EventImage> sortedImages = images.stream()
-                        .sorted(Comparator.comparingInt(EventImage::getDisplayOrder))
-                        .collect(Collectors.toList());
-
-                    for (int i = 0; i < sortedImages.size(); i++) {
-                        String freshUrl = freshUrls.get(Math.min(i, freshUrls.size() - 1));
-                        EventImage img = sortedImages.get(i);
-                        if (!freshUrl.equals(img.getMediaUrl())) {
-                            img.setMediaUrl(freshUrl);
-                            eventImageRepository.save(img);
-                            totalUpdated++;
-                        }
-                    }
-
-                } else {
-                    // ── Post de imagen simple → pedir su URL fresca directamente ──
-                    apiClient.fetchSingleMedia(postId).ifPresent(item -> {
-                        String freshUrl = item.getMediaUrl();
-                        if (freshUrl == null || "VIDEO".equals(item.getMediaType())) return;
-
-                        for (EventImage img : images) {
-                            if (!freshUrl.equals(img.getMediaUrl())) {
-                                img.setMediaUrl(freshUrl);
-                                eventImageRepository.save(img);
-                            }
-                        }
-                    });
-                    // El contador se incrementa fuera del lambda para evitar "effectively final"
-                    // — el log de progreso es suficiente para auditar el resultado.
-                }
-
-            } catch (Exception e) {
-                log.warn("[RefreshURLs] No se pudo refrescar post {}: {}", postId, e.getMessage());
-            }
+            totalUpdated += imageUrlRefresher.refreshUrlsForPost(postId, images);
 
             if (processed % 10 == 0) {
                 log.info("[RefreshURLs] Progreso: {}/{} posts procesados, {} URLs actualizadas",

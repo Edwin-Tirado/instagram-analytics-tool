@@ -2,19 +2,28 @@ package ec.ucsg.analytics.infrastructure.mail;
 
 import ec.ucsg.analytics.domain.model.AppUser;
 import ec.ucsg.analytics.domain.model.Event;
+import ec.ucsg.analytics.domain.model.EventImage;
 import ec.ucsg.analytics.domain.model.Reminder;
+import ec.ucsg.analytics.infrastructure.instagram.InstagramImageUrlRefresher;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -27,7 +36,16 @@ public class EmailNotificationService {
     private static final DateTimeFormatter TIME_FORMAT =
         DateTimeFormatter.ofPattern("HH:mm");
 
-    private final JavaMailSender mailSender;
+    /** Content-ID de la imagen embebida — debe coincidir entre el HTML (cid:) y el adjunto inline. */
+    private static final String INLINE_IMAGE_CID = "eventImage";
+
+    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
+        .connectTimeout(Duration.ofSeconds(5))
+        .followRedirects(HttpClient.Redirect.NORMAL)
+        .build();
+
+    private final JavaMailSender               mailSender;
+    private final InstagramImageUrlRefresher    imageUrlRefresher;
 
     @Value("${app.mail.from}")
     private String fromAddress;
@@ -43,45 +61,50 @@ public class EmailNotificationService {
     @Async
     public void sendReminderConfirmation(AppUser user, Event event, Reminder reminder) {
         String label   = formatMinutes(reminder.getMinutesBefore());
+        Optional<InlineImage> image = loadInlineImage(event);
         String subject = "✅ Recordatorio guardado: " + event.getTitle();
-        String body    = buildConfirmationHtml(user, event, label);
-        send(user.getEmail(), subject, body);
+        String body    = buildConfirmationHtml(user, event, label, image.isPresent());
+        send(user.getEmail(), subject, body, image.orElse(null));
     }
 
     // ── 2. Email del día del evento (a las 08:00) ────────────────────────────
 
     @Async
     public void sendDayReminderEmail(AppUser user, Event event) {
+        Optional<InlineImage> image = loadInlineImage(event);
         String subject = "📅 Hoy es el día: " + event.getTitle();
-        String body    = buildDayReminderHtml(user, event);
-        send(user.getEmail(), subject, body);
+        String body    = buildDayReminderHtml(user, event, image.isPresent());
+        send(user.getEmail(), subject, body, image.orElse(null));
     }
 
     // ── 3. Recordatorio X minutos antes del evento ───────────────────────────
 
     @Async
     public void sendReminderEmail(AppUser user, Event event, Reminder reminder) {
+        Optional<InlineImage> image = loadInlineImage(event);
         String subject = "⏰ Recordatorio: " + event.getTitle();
-        String body    = buildReminderHtml(user, event, reminder);
-        send(user.getEmail(), subject, body);
+        String body    = buildReminderHtml(user, event, reminder, image.isPresent());
+        send(user.getEmail(), subject, body, image.orElse(null));
     }
 
     // ── 4. Nuevo evento aprobado en una zona de interés del usuario ──────────
 
     @Async
     public void sendNewEventNotification(AppUser user, Event event) {
+        Optional<InlineImage> image = loadInlineImage(event);
         String subject = "🎉 Nuevo evento en tu zona de interés: " + event.getTitle();
-        String body    = buildNewEventHtml(user, event);
-        send(user.getEmail(), subject, body);
+        String body    = buildNewEventHtml(user, event, image.isPresent());
+        send(user.getEmail(), subject, body, image.orElse(null));
     }
 
     // ── 5. Evento editado — notificar a usuarios con recordatorio ────────────
 
     @Async
     public void sendEventEditedNotification(AppUser user, Event event) {
+        Optional<InlineImage> image = loadInlineImage(event);
         String subject = "✏️ Evento actualizado: " + event.getTitle();
-        String body    = buildEventEditedHtml(user, event);
-        send(user.getEmail(), subject, body);
+        String body    = buildEventEditedHtml(user, event, image.isPresent());
+        send(user.getEmail(), subject, body, image.orElse(null));
     }
 
     // ── 6. Evento eliminado — notificar a usuarios con recordatorio ──────────
@@ -97,6 +120,10 @@ public class EmailNotificationService {
 
     @Async
     public void send(String to, String subject, String htmlBody) {
+        send(to, subject, htmlBody, null);
+    }
+
+    private void send(String to, String subject, String htmlBody, InlineImage image) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -104,6 +131,9 @@ public class EmailNotificationService {
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlBody, true);
+            if (image != null) {
+                helper.addInline(INLINE_IMAGE_CID, new ByteArrayResource(image.bytes()), image.contentType());
+            }
             mailSender.send(message);
             log.info("Correo enviado a {}: {}", to, subject);
         } catch (MessagingException e) {
@@ -115,12 +145,12 @@ public class EmailNotificationService {
 
     // ── Templates HTML ────────────────────────────────────────────────────────
 
-    private String buildConfirmationHtml(AppUser user, Event event, String label) {
+    private String buildConfirmationHtml(AppUser user, Event event, String label, boolean hasImage) {
         String dateStr   = event.getEventDate() != null
             ? event.getEventDate().format(DATE_FORMAT) : "Fecha por confirmar";
         String zone      = event.getZone() != null ? event.getZone().getName() : "Campus UCSG";
         String name      = user.getFullName() != null ? user.getFullName() : user.getEmail();
-        String imageHtml = buildImageBlock(event);
+        String imageHtml = buildImageBlock(hasImage, event.getTitle());
         String ctaUrl    = buildEventUrl(event);
         int    year      = java.time.Year.now().getValue();
 
@@ -163,12 +193,12 @@ public class EmailNotificationService {
             """.formatted(imageHtml, name, label, event.getTitle(), dateStr, zone, ctaUrl, year);
     }
 
-    private String buildDayReminderHtml(AppUser user, Event event) {
+    private String buildDayReminderHtml(AppUser user, Event event, boolean hasImage) {
         String timeStr   = event.getEventDate() != null
             ? event.getEventDate().format(TIME_FORMAT) : "—";
         String zone      = event.getZone() != null ? event.getZone().getName() : "Campus UCSG";
         String name      = user.getFullName() != null ? user.getFullName() : user.getEmail();
-        String imageHtml = buildImageBlock(event);
+        String imageHtml = buildImageBlock(hasImage, event.getTitle());
         String ctaUrl    = buildEventUrl(event);
         int    year      = java.time.Year.now().getValue();
 
@@ -211,13 +241,13 @@ public class EmailNotificationService {
             """.formatted(imageHtml, name, event.getTitle(), timeStr, zone, ctaUrl, year);
     }
 
-    private String buildReminderHtml(AppUser user, Event event, Reminder reminder) {
+    private String buildReminderHtml(AppUser user, Event event, Reminder reminder, boolean hasImage) {
         String dateStr   = event.getEventDate() != null
             ? event.getEventDate().format(DATE_FORMAT) : "Fecha por confirmar";
         String zone      = event.getZone() != null ? event.getZone().getName() : "Campus UCSG";
         String name      = user.getFullName() != null ? user.getFullName() : user.getEmail();
         String label     = formatMinutes(reminder.getMinutesBefore());
-        String imageHtml = buildImageBlock(event);
+        String imageHtml = buildImageBlock(hasImage, event.getTitle());
         String ctaUrl    = buildEventUrl(event);
         int    year      = java.time.Year.now().getValue();
 
@@ -260,12 +290,12 @@ public class EmailNotificationService {
             """.formatted(imageHtml, name, label, event.getTitle(), dateStr, zone, ctaUrl, year);
     }
 
-    private String buildNewEventHtml(AppUser user, Event event) {
+    private String buildNewEventHtml(AppUser user, Event event, boolean hasImage) {
         String dateStr   = event.getEventDate() != null
             ? event.getEventDate().format(DATE_FORMAT) : "Fecha por confirmar";
         String zone      = event.getZone() != null ? event.getZone().getName() : "Campus UCSG";
         String name      = user.getFullName() != null ? user.getFullName() : user.getEmail();
-        String imageHtml = buildImageBlock(event);
+        String imageHtml = buildImageBlock(hasImage, event.getTitle());
         String ctaUrl    = buildEventUrl(event);
         int    year      = java.time.Year.now().getValue();
 
@@ -310,26 +340,81 @@ public class EmailNotificationService {
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     /**
-     * Construye el bloque HTML de imagen responsiva del evento.
-     * Usa la primera imagen del carrusel; si no hay imágenes, devuelve bloque vacío.
+     * Descarga la primera imagen del evento y la deja lista para adjuntarse
+     * inline (Content-ID) al MimeMessage.
+     *
+     * La media_url de Instagram almacenada en BD expira ~7 días después de la
+     * ingesta — un correo puede dispararse mucho después (recordatorio del día
+     * del evento, X minutos antes, etc.), así que en vez de enlazar directo a
+     * esa URL (que puede estar muerta y romper la imagen en el cliente de
+     * correo) se descarga el binario y se embebe en el propio email. Si la
+     * descarga falla, se pide una URL fresca una sola vez antes de renunciar.
      */
-    private String buildImageBlock(Event event) {
+    private Optional<InlineImage> loadInlineImage(Event event) {
         if (event.getImages() == null || event.getImages().isEmpty()) {
-            return "";
+            return Optional.empty();
         }
-        String imageUrl = event.getImages().get(0).getMediaUrl();
-        if (imageUrl == null || imageUrl.isBlank()) {
+
+        EventImage img = event.getImages().get(0);
+        if (img.getMediaUrl() == null || img.getMediaUrl().isBlank()) {
+            return Optional.empty();
+        }
+
+        Optional<InlineImage> result = tryDownloadImage(img.getMediaUrl());
+
+        if (result.isEmpty() && img.getId() != null) {
+            result = imageUrlRefresher.refreshSingleImageUrl(img.getId())
+                .flatMap(this::tryDownloadImage);
+        }
+
+        if (result.isEmpty()) {
+            log.warn("No se pudo adjuntar la imagen del evento '{}' al correo (URL de Instagram expirada o inaccesible)",
+                event.getTitle());
+        }
+
+        return result;
+    }
+
+    private Optional<InlineImage> tryDownloadImage(String url) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder(URI.create(url))
+                .timeout(Duration.ofSeconds(8))
+                .GET()
+                .build();
+            HttpResponse<byte[]> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            String contentType = response.headers().firstValue("Content-Type").orElse("image/jpeg");
+
+            if (response.statusCode() == 200 && response.body().length > 0 && contentType.startsWith("image/")) {
+                return Optional.of(new InlineImage(response.body(), contentType));
+            }
+            log.debug("Descarga de imagen para email respondió {} (content-type={})", response.statusCode(), contentType);
+            return Optional.empty();
+        } catch (Exception e) {
+            log.debug("No se pudo descargar la imagen para el email: {}", e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    /** Bytes de la imagen ya descargados, listos para adjuntarse inline (cid:eventImage). */
+    private record InlineImage(byte[] bytes, String contentType) {}
+
+    /**
+     * Construye el bloque HTML de imagen responsiva del evento.
+     * Referencia el adjunto inline (cid:) — nunca la URL remota de Instagram,
+     * que puede haber expirado para cuando el destinatario abre el correo.
+     */
+    private String buildImageBlock(boolean hasImage, String altText) {
+        if (!hasImage) {
             return "";
         }
         return """
             <div style="text-align:center;background:#fdf6f0;padding:0;">
-              <img src="%s"
+              <img src="cid:%s"
                    alt="%s"
                    width="600"
-                   referrerpolicy="no-referrer"
                    style="display:block;width:100%%;max-width:600px;height:auto;object-fit:cover;max-height:320px;" />
             </div>
-            """.formatted(imageUrl, escapeHtml(event.getTitle()));
+            """.formatted(INLINE_IMAGE_CID, escapeHtml(altText));
     }
 
     /**
@@ -357,12 +442,12 @@ public class EmailNotificationService {
         return (minutes / 1440) + " días";
     }
 
-    private String buildEventEditedHtml(AppUser user, Event event) {
+    private String buildEventEditedHtml(AppUser user, Event event, boolean hasImage) {
         String dateStr   = event.getEventDate() != null
             ? event.getEventDate().format(DATE_FORMAT) : "Fecha por confirmar";
         String zone      = event.getZone() != null ? event.getZone().getName() : "Campus UCSG";
         String name      = user.getFullName() != null ? user.getFullName() : user.getEmail();
-        String imageHtml = buildImageBlock(event);
+        String imageHtml = buildImageBlock(hasImage, event.getTitle());
         String ctaUrl    = buildEventUrl(event);
         int    year      = java.time.Year.now().getValue();
 
@@ -445,4 +530,3 @@ public class EmailNotificationService {
             """.formatted(name, eventTitle, frontendUrl, year);
     }
 }
-
