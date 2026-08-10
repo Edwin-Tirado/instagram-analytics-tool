@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
+import { MapPin } from 'lucide-react'
 import EventImage from '@/components/EventImage'
 import Navbar from '@/components/Navbar'
 import { addReminder, deleteReminder, getEventById, getMyReminders } from '@/lib/api'
@@ -169,7 +170,7 @@ export default function EventDetailPage() {
                 <div className="flex flex-col gap-[9px] bg-ucsg-warm p-[18px] rounded-[11px] mb-[22px] text-[0.92rem] font-semibold text-ucsg-brown border-l-4 border-ucsg-crimson">
                   <span className="flex items-center gap-[9px]">📅 {formatFullDate(event.eventDate)}</span>
                   <span className="flex items-center gap-[9px]">
-                    📍 {event.zone?.name ?? event.zoneName ?? 'Campus UCSG'}
+                    <MapPin size={16} strokeWidth={2.25} className="shrink-0" /> {event.zone?.name ?? event.zoneName ?? 'Campus UCSG'}
                     {event.locationText ? ` — ${event.locationText}` : ''}
                   </span>
                 </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { MapPin } from 'lucide-react'
 import { UIEvent, ReminderMinutes } from '@/types'
 import EventImage from './EventImage'
 import EventMap from './EventMap'
@@ -92,7 +93,7 @@ export default function EventModal({ event, onClose, onToggleReminder }: EventMo
             border-l-4 border-ucsg-crimson
           ">
             <span className="flex items-center gap-[9px]">📅 {event.fullDate}</span>
-            <span className="flex items-center gap-[9px]">📍 {event.location}</span>
+            <span className="flex items-center gap-[9px]"><MapPin size={16} strokeWidth={2.25} className="shrink-0" /> {event.location}</span>
           </div>
 
           {/* Description */}

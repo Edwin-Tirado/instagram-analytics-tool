@@ -80,10 +80,10 @@ export default function RegisterPage() {
         {/* Logo */}
         <div className="relative flex items-center gap-4">
           <div className="
-            w-10 h-10 border-2 border-white/80 rounded-full
-            flex items-center justify-center text-xl
+            w-10 h-10 bg-white rounded-full p-[7px]
+            flex items-center justify-center overflow-hidden
           ">
-            ✛
+            <img src="/logo-mark.png" alt="UCSG" className="w-full h-full object-contain" />
           </div>
           <div className="leading-tight">
             <p className="font-extrabold text-xl tracking-wide">UCSG</p>
@@ -114,11 +114,8 @@ export default function RegisterPage() {
       ">
         {/* Logo móvil */}
         <div className="flex items-center gap-3 mb-10 lg:hidden">
-          <div className="
-            w-9 h-9 border-2 border-ucsg-crimson rounded-full
-            flex items-center justify-center text-ucsg-crimson text-lg
-          ">
-            ✛
+          <div className="w-9 h-9 flex items-center justify-center">
+            <img src="/logo-mark.png" alt="UCSG" className="w-full h-full object-contain" />
           </div>
           <div className="leading-tight">
             <p className="font-extrabold text-ucsg-crimson text-lg tracking-wide">UCSG</p>

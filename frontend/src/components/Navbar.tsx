@@ -39,11 +39,11 @@ export default function Navbar() {
       {/* Logo */}
       <Link href="/" className="flex items-center gap-[12px] no-underline group">
         <div className="
-          w-[38px] h-[38px] bg-white/10 border border-white/20
-          text-white rounded-xl flex items-center justify-center text-[1.2rem] font-bold
+          w-[38px] h-[38px] bg-white rounded-xl p-[6px]
+          flex items-center justify-center overflow-hidden
           shadow-md group-hover:scale-105 transition-transform duration-200
         ">
-          ✛
+          <img src="/logo-mark.png" alt="UCSG" className="w-full h-full object-contain" />
         </div>
         <div className="flex flex-col leading-[1.05]">
           <span className="font-extrabold text-[1.22rem] tracking-[-0.2px] text-white">UCSG</span>

@@ -1,5 +1,6 @@
 'use client'
 
+import { Clock, MapPin } from 'lucide-react'
 import EventImage from './EventImage'
 import { UIEvent } from '@/types'
 
@@ -88,8 +89,8 @@ export default function EventCard({ event, onClick }: EventCardProps) {
           flex gap-5 text-[0.86rem] text-ucsg-brown-400 mb-[13px]
           font-medium flex-wrap
         ">
-          <span className="flex items-center gap-[6px]">🕒 {event.time}</span>
-          <span className="flex items-center gap-[6px]">📍 {event.location}</span>
+          <span className="flex items-center gap-[6px]"><Clock size={14} strokeWidth={2.25} className="shrink-0 text-ucsg-crimson-400" /> {event.time}</span>
+          <span className="flex items-center gap-[6px]"><MapPin size={14} strokeWidth={2.25} className="shrink-0 text-ucsg-crimson-400" /> {event.location}</span>
         </div>
 
         <p className="
