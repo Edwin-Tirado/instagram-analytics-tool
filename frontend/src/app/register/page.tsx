@@ -3,6 +3,7 @@
 import { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { AlertTriangle, Check, CheckCircle2, Eye, EyeOff } from 'lucide-react'
 import { register } from '@/lib/api'
 
 // ── Mapeo de mensajes de error del backend ────────────────────────────────────
@@ -142,7 +143,7 @@ export default function RegisterPage() {
               text-green-700 text-[0.9rem] font-medium
               flex items-start gap-3 animate-ucsg-rise
             ">
-              <span className="mt-px text-base">✅</span>
+              <CheckCircle2 size={18} strokeWidth={2.25} className="shrink-0 mt-px" />
               <span>¡Cuenta creada! Redirigiendo a la cartelera…</span>
             </div>
           )}
@@ -155,7 +156,7 @@ export default function RegisterPage() {
               text-red-700 text-[0.9rem] font-medium
               flex items-start gap-3 animate-ucsg-rise
             ">
-              <span className="mt-px text-base">⚠️</span>
+              <AlertTriangle size={18} strokeWidth={2.25} className="shrink-0 mt-px" />
               <span>{error}</span>
             </div>
           )}
@@ -226,8 +227,8 @@ export default function RegisterPage() {
                 </p>
               )}
               {email.length > 0 && isInstitutionalEmail && (
-                <p className="mt-[5px] text-[0.78rem] text-green-600 font-medium">
-                  ✓ Correo institucional válido
+                <p className="flex items-center gap-1 mt-[5px] text-[0.78rem] text-green-600 font-medium">
+                  <Check size={13} strokeWidth={2.5} /> Correo institucional válido
                 </p>
               )}
             </div>
@@ -268,12 +269,12 @@ export default function RegisterPage() {
                   className="
                     absolute right-3 top-1/2 -translate-y-1/2
                     text-ucsg-brown-400 hover:text-ucsg-brown
-                    text-lg transition-colors select-none
+                    transition-colors select-none
                     disabled:opacity-40
                   "
                   aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 >
-                  {showPass ? '🙈' : '👁'}
+                  {showPass ? <EyeOff size={18} strokeWidth={2} /> : <Eye size={18} strokeWidth={2} />}
                 </button>
               </div>
               {/* Indicador de longitud mínima */}
@@ -305,7 +306,7 @@ export default function RegisterPage() {
                   Creando cuenta…
                 </>
               ) : success ? (
-                '✅ ¡Listo!'
+                <><CheckCircle2 size={18} strokeWidth={2.25} /> ¡Listo!</>
               ) : (
                 'Crear cuenta'
               )}

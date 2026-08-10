@@ -1,6 +1,6 @@
 'use client'
 
-import { Clock, MapPin } from 'lucide-react'
+import { Clock, ImageOff, MapPin, Star } from 'lucide-react'
 import EventImage from './EventImage'
 import { UIEvent } from '@/types'
 
@@ -27,7 +27,7 @@ export default function EventCard({ event, onClick }: EventCardProps) {
           <EventImage src={event.imageUrl} alt={event.title} className="w-full h-full" />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-ucsg-warm-100">
-            <span className="text-ucsg-muted text-4xl">📸</span>
+            <ImageOff size={40} strokeWidth={1.5} className="text-ucsg-muted" />
           </div>
         )}
 
@@ -55,9 +55,9 @@ export default function EventCard({ event, onClick }: EventCardProps) {
           <div className="
             absolute top-4 right-4 bg-ucsg-success/95 text-white
             w-[30px] h-[30px] rounded-full flex items-center justify-center
-            text-[0.85rem] shadow-md
+            shadow-md
           ">
-            ★
+            <Star size={14} strokeWidth={2} fill="currentColor" />
           </div>
         )}
       </div>

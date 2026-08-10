@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { MapPin } from 'lucide-react'
+import { Bell, Calendar, CheckCircle2, ImageOff, MapPin, X } from 'lucide-react'
 import { UIEvent, ReminderMinutes } from '@/types'
 import EventImage from './EventImage'
 import EventMap from './EventMap'
@@ -42,7 +42,7 @@ export default function EventModal({ event, onClose, onToggleReminder }: EventMo
             <EventImage src={event.imageUrl} alt={event.title} className="w-full h-[240px]" />
           ) : (
             <div className="w-full h-[240px] bg-ucsg-warm-100 flex items-center justify-center">
-              <span className="text-ucsg-muted text-6xl">📸</span>
+              <ImageOff size={56} strokeWidth={1.5} className="text-ucsg-muted" />
             </div>
           )}
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[rgba(20,15,13,0.55)]" />
@@ -53,11 +53,11 @@ export default function EventModal({ event, onClose, onToggleReminder }: EventMo
             className="
               absolute top-4 right-4 bg-black/55 text-white
               border-none rounded-full w-[38px] h-[38px]
-              cursor-pointer text-[1.1rem] flex items-center justify-center
+              cursor-pointer flex items-center justify-center
               hover:bg-black/75 transition-colors
             "
           >
-            ✕
+            <X size={18} strokeWidth={2.25} />
           </button>
 
           {/* Category tag */}
@@ -92,7 +92,7 @@ export default function EventModal({ event, onClose, onToggleReminder }: EventMo
             mb-[22px] text-[0.92rem] font-semibold text-ucsg-brown
             border-l-4 border-ucsg-crimson
           ">
-            <span className="flex items-center gap-[9px]">📅 {event.fullDate}</span>
+            <span className="flex items-center gap-[9px]"><Calendar size={16} strokeWidth={2.25} className="shrink-0" /> {event.fullDate}</span>
             <span className="flex items-center gap-[9px]"><MapPin size={16} strokeWidth={2.25} className="shrink-0" /> {event.location}</span>
           </div>
 
@@ -147,7 +147,7 @@ export default function EventModal({ event, onClose, onToggleReminder }: EventMo
                 hover:bg-ucsg-success-800 transition-colors
               "
             >
-              ✔️ Recordatorio activado — toca para cancelar
+              <CheckCircle2 size={18} strokeWidth={2.25} /> Recordatorio activado — toca para cancelar
             </button>
           ) : (
             /* Estado: sin recordatorio → un clic directo crea el recordatorio */
@@ -161,7 +161,7 @@ export default function EventModal({ event, onClose, onToggleReminder }: EventMo
                 transition-all duration-150
               "
             >
-              🔔 Recordarme este evento
+              <Bell size={18} strokeWidth={2.25} /> Recordarme este evento
             </button>
           )}
         </div>

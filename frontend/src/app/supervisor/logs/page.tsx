@@ -1,5 +1,6 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
+import { ArrowLeftRight, CheckCircle2, Loader2, RefreshCw, X, XCircle } from 'lucide-react'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { getIngestionRuns } from '@/lib/api'
 import { getStoredUser } from '@/lib/auth'
@@ -12,10 +13,10 @@ const STATUS_COLORS: Record<string, string> = {
   FAILED:  'bg-red-100 text-red-800',
 }
 
-const STATUS_ICONS: Record<string, string> = {
-  RUNNING: '⏳',
-  SUCCESS: '✅',
-  FAILED:  '❌',
+const STATUS_ICONS: Record<string, typeof Loader2> = {
+  RUNNING: Loader2,
+  SUCCESS: CheckCircle2,
+  FAILED:  XCircle,
 }
 
 function formatDate(iso: string | null) {
@@ -88,15 +89,15 @@ export default function SupervisorLogsPage() {
               onClick={triggerSync} disabled={syncing}
               className="flex items-center gap-2 bg-[#931934] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#7a1528] disabled:opacity-60 transition-colors"
             >
-              {syncing ? <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : '🔄'}
+              {syncing ? <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <RefreshCw size={15} strokeWidth={2.25} />}
               {syncing ? 'Sincronizando…' : 'Sincronizar Instagram'}
             </button>
           )}
         </div>
 
         {syncMsg && (
-          <div className="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg">
-            ✅ {syncMsg}
+          <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg">
+            <CheckCircle2 size={16} strokeWidth={2.25} className="shrink-0" /> {syncMsg}
           </div>
         )}
 
@@ -153,8 +154,8 @@ export default function SupervisorLogsPage() {
                     <td className="px-4 py-3">
                       <div className="flex gap-3 text-xs text-[#7a6652]">
                         <span className="text-green-700">+{run.createdCount} nuevos</span>
-                        <span className="text-blue-700">↔ {run.mergedCount} fusionados</span>
-                        <span className="text-red-600">✗ {run.rejectedCount} rechazados</span>
+                        <span className="flex items-center gap-1 text-blue-700"><ArrowLeftRight size={12} strokeWidth={2.5} /> {run.mergedCount} fusionados</span>
+                        <span className="flex items-center gap-1 text-red-600"><X size={12} strokeWidth={2.5} /> {run.rejectedCount} rechazados</span>
                       </div>
                       {run.errorMessage && (
                         <div className="text-xs text-red-600 mt-1 line-clamp-1" title={run.errorMessage}>
@@ -163,8 +164,8 @@ export default function SupervisorLogsPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLORS[run.status]}`}>
-                        {STATUS_ICONS[run.status]} {run.status}
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLORS[run.status]}`}>
+                        {(() => { const Icon = STATUS_ICONS[run.status]; return Icon ? <Icon size={12} strokeWidth={2.5} className={run.status === 'RUNNING' ? 'animate-spin' : ''} /> : null })()} {run.status}
                       </span>
                     </td>
                   </tr>

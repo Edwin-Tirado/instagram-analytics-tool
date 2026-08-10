@@ -1,7 +1,10 @@
 'use client'
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { ClipboardList, Image as ImageIcon, MapPin, RefreshCw } from 'lucide-react'
+import {
+  AlertTriangle, Bell, CheckCircle2, ClipboardList, Image as ImageIcon,
+  KeyRound, Lock, MapPin, RefreshCw, Unlock,
+} from 'lucide-react'
 import AdminLayout from '@/components/admin/AdminLayout'
 import DataTable from '@/components/admin/DataTable'
 import MapModal from '@/components/MapModal'
@@ -288,9 +291,9 @@ function EventsTab() {
           )}
         </div>
 
-        {syncMsg && <div className="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg">✅ {syncMsg}</div>}
-        {rematchMsg && <div className="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg">✅ {rematchMsg}</div>}
-        {refreshUrlsMsg && <div className="bg-blue-50 border border-blue-200 text-blue-800 text-sm px-4 py-3 rounded-lg">🖼️ {refreshUrlsMsg}</div>}
+        {syncMsg && <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg"><CheckCircle2 size={16} strokeWidth={2.25} className="shrink-0" /> {syncMsg}</div>}
+        {rematchMsg && <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg"><CheckCircle2 size={16} strokeWidth={2.25} className="shrink-0" /> {rematchMsg}</div>}
+        {refreshUrlsMsg && <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-800 text-sm px-4 py-3 rounded-lg"><ImageIcon size={16} strokeWidth={2.25} className="shrink-0" /> {refreshUrlsMsg}</div>}
         {(error || syncError) && <div className="bg-red-50 border border-red-200 text-red-800 text-sm px-4 py-3 rounded-lg">{error || syncError}</div>}
 
         <div className="flex gap-2">
@@ -335,7 +338,9 @@ function EventsTab() {
                   <div>
                     <span className="text-[#7a6652]">{formatDate(ev.eventDate)}</span>
                     {isPast && (
-                      <div className="text-xs text-yellow-700 font-semibold mt-0.5">⚠️ Ya pasó</div>
+                      <div className="flex items-center gap-1 text-xs text-yellow-700 font-semibold mt-0.5">
+                        <AlertTriangle size={11} strokeWidth={2.5} /> Ya pasó
+                      </div>
                     )}
                   </div>
                 )
@@ -368,7 +373,7 @@ function EventsTab() {
                       className="flex items-center gap-1 text-[10px] text-[#7a6652]"
                       title={`${reminderCounts[ev.id]} persona(s) tienen recordatorio de este evento`}
                     >
-                      <span>🔔</span>
+                      <Bell size={11} strokeWidth={2.5} />
                       <span>{reminderCounts[ev.id]} recordatorio{reminderCounts[ev.id] !== 1 ? 's' : ''}</span>
                     </div>
                   )}
@@ -673,7 +678,7 @@ function UsersTab() {
         {/* Resumen rápido de bloqueados */}
         {lockedCount > 0 && (
           <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm font-semibold px-3 py-1.5 rounded-lg">
-            <span>&#128274;</span>
+            <Lock size={14} strokeWidth={2.25} />
             <span>{lockedCount} cuenta{lockedCount > 1 ? 's' : ''} bloqueada{lockedCount > 1 ? 's' : ''}</span>
           </div>
         )}
@@ -682,14 +687,14 @@ function UsersTab() {
       {/* Filtros */}
       <div className="flex gap-2">
         {([
-          { key: 'all',      label: `Todos (${total})` },
-          { key: 'locked',   label: `🔒 Bloqueados (${lockedCount})` },
-          { key: 'disabled', label: `Desactivados (${disabledCount})` },
-        ] as { key: UserFilter; label: string }[]).map(f => (
+          { key: 'all',      label: `Todos (${total})`, icon: null },
+          { key: 'locked',   label: `Bloqueados (${lockedCount})`, icon: Lock },
+          { key: 'disabled', label: `Desactivados (${disabledCount})`, icon: null },
+        ] as { key: UserFilter; label: string; icon: typeof Lock | null }[]).map(f => (
           <button
             key={f.key}
             onClick={() => setUserFilter(f.key)}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
               userFilter === f.key
                 ? f.key === 'locked'
                   ? 'bg-red-600 text-white'
@@ -697,6 +702,7 @@ function UsersTab() {
                 : 'bg-white border border-[#e8ddd4] text-[#7a6652] hover:border-[#931934] hover:text-[#931934]'
             }`}
           >
+            {f.icon && <f.icon size={12} strokeWidth={2.5} />}
             {f.label}
           </button>
         ))}
@@ -708,8 +714,9 @@ function UsersTab() {
         {loading ? (
           <div className="py-16 text-center text-[#7a6652] text-sm">Cargando…</div>
         ) : filtered.length === 0 ? (
-          <div className="py-16 text-center text-[#7a6652] text-sm">
-            {userFilter === 'locked' ? 'No hay cuentas bloqueadas. ✅' : 'Sin usuarios registrados.'}
+          <div className="flex items-center justify-center gap-1.5 py-16 text-center text-[#7a6652] text-sm">
+            {userFilter === 'locked' && <CheckCircle2 size={16} strokeWidth={2.25} />}
+            {userFilter === 'locked' ? 'No hay cuentas bloqueadas.' : 'Sin usuarios registrados.'}
           </div>
         ) : (
           <table className="w-full text-sm">
@@ -737,7 +744,9 @@ function UsersTab() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         {u.locked && (
-                          <span title={`Bloqueado tras ${u.failedLoginAttempts} intentos`} className="text-red-500 text-base">&#128274;</span>
+                          <span title={`Bloqueado tras ${u.failedLoginAttempts} intentos`} className="text-red-500 shrink-0 flex">
+                            <Lock size={15} strokeWidth={2.25} />
+                          </span>
                         )}
                         <div>
                           <div className="font-medium text-[#2d1b0e]">{u.fullName || '—'}</div>
@@ -780,7 +789,7 @@ function UsersTab() {
                             onClick={() => handleToggleLock(u)}
                             className="flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                           >
-                            <span>&#128275;</span>
+                            <Unlock size={13} strokeWidth={2.5} />
                             Desbloquear
                           </button>
                         )}
@@ -800,9 +809,9 @@ function UsersTab() {
                             onClick={() => handleResetPassword(u)}
                             disabled={resetting === u.id}
                             title="Generar contraseña temporal"
-                            className="text-xs font-medium text-amber-700 hover:text-amber-900 disabled:opacity-50"
+                            className="flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-900 disabled:opacity-50"
                           >
-                            {resetting === u.id ? '…' : '🔑 Resetear'}
+                            {resetting === u.id ? '…' : <><KeyRound size={12} strokeWidth={2.5} /> Resetear</>}
                           </button>
                         )}
                       </div>
@@ -830,7 +839,7 @@ function UsersTab() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 space-y-4">
             <div className="flex items-center gap-2">
-              <span className="text-2xl">🔑</span>
+              <KeyRound size={22} strokeWidth={2} className="text-amber-700" />
               <h3 className="font-bold text-[#2d1b0e] text-lg">Contraseña temporal generada</h3>
             </div>
             <p className="text-sm text-[#7a6652]">
@@ -849,8 +858,9 @@ function UsersTab() {
                 Copiar
               </button>
             </div>
-            <p className="text-xs text-[#7a6652] leading-relaxed">
-              ⚠️ Esta contraseña solo se muestra <strong>una vez</strong>. Compártela con el usuario de forma segura. El usuario podrá iniciar sesión con ella inmediatamente.
+            <p className="flex items-start gap-1.5 text-xs text-[#7a6652] leading-relaxed">
+              <AlertTriangle size={14} strokeWidth={2.25} className="shrink-0 mt-px text-amber-600" />
+              <span>Esta contraseña solo se muestra <strong>una vez</strong>. Compártela con el usuario de forma segura. El usuario podrá iniciar sesión con ella inmediatamente.</span>
             </p>
             <button
               onClick={() => setResetResult(null)}
@@ -944,7 +954,7 @@ function LocationsTab() {
         className="w-full max-w-sm border border-[#e8ddd4] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#931934]"
       />
 
-      {savedMsg && <div className="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg">✅ {savedMsg}</div>}
+      {savedMsg && <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg"><CheckCircle2 size={16} strokeWidth={2.25} className="shrink-0" /> {savedMsg}</div>}
       {error && <div className="bg-red-50 border border-red-200 text-red-800 text-sm px-4 py-3 rounded-lg">{error}</div>}
 
       <div className="bg-white rounded-xl border border-[#e8ddd4] overflow-hidden">
@@ -1075,7 +1085,7 @@ function InstagramTab() {
       const updated = await updateInstagramToken(tokenInput.trim())
       setStatus(updated)
       setTokenInput('')
-      setMsg('✅ Token actualizado correctamente.')
+      setMsg('Token actualizado correctamente.')
     } catch (e: any) {
       setError(e.message ?? 'No se pudo guardar el token')
     } finally {
@@ -1107,7 +1117,7 @@ function InstagramTab() {
               )}
             </div>
           ) : (
-            <span className="text-sm text-yellow-700">⚠️ No hay ningún token configurado todavía.</span>
+            <span className="flex items-center gap-1.5 text-sm text-yellow-700"><AlertTriangle size={14} strokeWidth={2.25} /> No hay ningún token configurado todavía.</span>
           )}
         </div>
 
@@ -1127,7 +1137,7 @@ function InstagramTab() {
           </p>
         </div>
 
-        {msg && <div className="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg">{msg}</div>}
+        {msg && <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg"><CheckCircle2 size={16} strokeWidth={2.25} className="shrink-0" /> {msg}</div>}
         {error && <div className="bg-red-50 border border-red-200 text-red-800 text-sm px-4 py-3 rounded-lg">{error}</div>}
 
         <button

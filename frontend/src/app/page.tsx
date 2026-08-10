@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
+import { List, Map as MapIcon, Star } from 'lucide-react'
 import CategoryFilter from '@/components/CategoryFilter'
 import EventCard from '@/components/EventCard'
 import Footer from '@/components/Footer'
@@ -67,7 +68,7 @@ export default function HomePage() {
   const [reminders, setReminders]       = useState<Set<string>>(new Set())
   const [reminderMap, setReminderMap]   = useState<Map<string, string>>(new Map()) // eventId → reminderId
   const [toast, setToast]               = useState(false)
-  const [toastMsg, setToastMsg]         = useState('✅ Guardado en tus recordatorios')
+  const [toastMsg, setToastMsg]         = useState('Guardado en tus recordatorios')
   const [activeMapFacility, setActiveMapFacility] = useState<{ title: string; lat: number; lng: number } | null>(null)
   const [zones, setZones]               = useState<Zone[]>([])
   const [view, setView]                 = useState<'lista' | 'mapa'>('lista')
@@ -151,22 +152,22 @@ export default function HomePage() {
           await deleteReminder(rid)
           setReminderMap((m) => { const n = new Map(m); n.delete(selectedId); return n })
           setReminders((prev) => { const n = new Set(prev); n.delete(selectedId); return n })
-          showToast('🗑️ Recordatorio eliminado')
+          showToast('Recordatorio eliminado')
         } catch (e: any) {
           // Antes esto se tragaba el error y el toast decía "eliminado" igual,
           // aunque el backend lo hubiera rechazado.
-          showToast(`⚠️ ${e.message ?? 'No se pudo eliminar el recordatorio'}`)
+          showToast(e.message ?? 'No se pudo eliminar el recordatorio')
         }
       } else {
         try {
           const res = await addReminder({ eventId: selectedId, minutesBefore: minutes })
           setReminderMap((m) => new Map(m).set(selectedId, res.id))
           setReminders((prev) => new Set(prev).add(selectedId))
-          showToast('✅ Guardado en tus recordatorios')
+          showToast('Guardado en tus recordatorios')
         } catch (e: any) {
           // Antes esto se tragaba el error (ej. 409 por duplicado, o evento ya
           // finalizado) y el toast decía "Guardado" igual, mintiéndole al usuario.
-          showToast(`⚠️ ${e.message ?? 'No se pudo guardar el recordatorio'}`)
+          showToast(e.message ?? 'No se pudo guardar el recordatorio')
         }
       }
     },
@@ -215,13 +216,14 @@ export default function HomePage() {
         {/* Alternar entre vista de lista y mapa del campus */}
         <div className="flex gap-[10px] mb-[26px]">
           {([
-            { key: 'lista', label: '🗒️ Lista' },
-            { key: 'mapa',  label: '🗺️ Mapa del Campus' },
-          ] as const).map(({ key, label }) => (
+            { key: 'lista', label: 'Lista', icon: List },
+            { key: 'mapa',  label: 'Mapa del Campus', icon: MapIcon },
+          ] as const).map(({ key, label, icon: Icon }) => (
             <button
               key={key}
               onClick={() => setView(key)}
               className={`
+                flex items-center gap-[7px]
                 px-[18px] py-[9px] rounded-[24px]
                 text-[0.8rem] font-bold cursor-pointer whitespace-nowrap
                 border transition-all duration-150
@@ -230,6 +232,7 @@ export default function HomePage() {
                   : 'bg-white border-ucsg-border text-ucsg-brown-400 hover:border-ucsg-border-dark hover:text-ucsg-brown'}
               `}
             >
+              <Icon size={14} strokeWidth={2.25} />
               {label}
             </button>
           ))}
@@ -256,7 +259,7 @@ export default function HomePage() {
             text-center py-[70px] px-5 text-ucsg-brown-200
             border-[1.5px] border-dashed border-ucsg-border-dark rounded-2xl
           ">
-            <div className="text-[2.4rem] mb-3">☆</div>
+            <Star size={38} strokeWidth={1.5} className="mx-auto mb-3" />
             <p className="text-[1.02rem] font-semibold text-ucsg-brown-400">
               {activeCategory === 'Mis Recordatorios'
                 ? 'Aún no tienes eventos guardados'

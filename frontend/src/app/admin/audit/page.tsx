@@ -1,14 +1,15 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
+import { CheckCircle2, LucideIcon, Pencil, Trash2, XCircle } from 'lucide-react'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { adminGetAuditLog } from '@/lib/api'
 import { AuditLogEntry } from '@/types'
 
-const ACTION_LABELS: Record<string, { label: string; color: string; icon: string }> = {
-  EDITED:   { label: 'Editado',   color: 'bg-blue-100 text-blue-800',   icon: '✏️' },
-  DELETED:  { label: 'Eliminado', color: 'bg-red-100 text-red-800',     icon: '🗑️' },
-  APPROVED: { label: 'Aprobado',  color: 'bg-green-100 text-green-800', icon: '✅' },
-  REJECTED: { label: 'Rechazado', color: 'bg-yellow-100 text-yellow-800', icon: '❌' },
+const ACTION_LABELS: Record<string, { label: string; color: string; icon: LucideIcon }> = {
+  EDITED:   { label: 'Editado',   color: 'bg-blue-100 text-blue-800',   icon: Pencil },
+  DELETED:  { label: 'Eliminado', color: 'bg-red-100 text-red-800',     icon: Trash2 },
+  APPROVED: { label: 'Aprobado',  color: 'bg-green-100 text-green-800', icon: CheckCircle2 },
+  REJECTED: { label: 'Rechazado', color: 'bg-yellow-100 text-yellow-800', icon: XCircle },
 }
 
 function formatDate(iso: string) {
@@ -101,8 +102,9 @@ export default function AdminAuditPage() {
               <tbody className="divide-y divide-[#f0e8df]">
                 {entries.map(entry => {
                   const meta = ACTION_LABELS[entry.action] ?? {
-                    label: entry.action, color: 'bg-gray-100 text-gray-700', icon: '•',
+                    label: entry.action, color: 'bg-gray-100 text-gray-700', icon: null,
                   }
+                  const Icon = meta.icon
                   return (
                     <tr key={entry.id} className="hover:bg-[#fdf9f6] transition-colors">
                       <td className="px-4 py-3 text-[#7a6652] whitespace-nowrap">
@@ -110,7 +112,7 @@ export default function AdminAuditPage() {
                       </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${meta.color}`}>
-                          {meta.icon} {meta.label}
+                          {Icon && <Icon size={12} strokeWidth={2.5} />} {meta.label}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-[#2d1b0e] font-medium max-w-[260px]">

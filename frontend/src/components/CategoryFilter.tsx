@@ -1,5 +1,7 @@
 'use client'
 
+import { Star } from 'lucide-react'
+
 interface CategoryFilterProps {
   categories: string[]
   active: string
@@ -14,11 +16,13 @@ export default function CategoryFilter({ categories, active, onSelect }: Categor
     <div className="flex gap-[10px] overflow-x-auto pb-[10px] mb-[34px] [-ms-overflow-style:none] [scrollbar-width:none]">
       {categories.map((cat) => {
         const isActive = normalize(active) === normalize(cat)
+        const isStarred = cat.includes('⭐')
         return (
           <button
             key={cat}
             onClick={() => onSelect(normalize(cat))}
             className={`
+              flex items-center gap-[6px]
               px-[22px] py-[11px] rounded-[24px]
               text-[0.85rem] font-semibold cursor-pointer whitespace-nowrap
               font-sans border transition-all duration-150
@@ -27,7 +31,8 @@ export default function CategoryFilter({ categories, active, onSelect }: Categor
                 : 'bg-white border-ucsg-border text-ucsg-brown-400 hover:border-ucsg-border-dark hover:text-ucsg-brown'}
             `}
           >
-            {cat}
+            {isStarred && <Star size={13} strokeWidth={2.25} fill={isActive ? 'currentColor' : 'none'} />}
+            {normalize(cat)}
           </button>
         )
       })}

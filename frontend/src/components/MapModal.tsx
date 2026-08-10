@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { X } from 'lucide-react'
 import EventMap from './EventMap'
 
 interface MapModalProps {
@@ -39,11 +40,11 @@ export default function MapModal({ title, lat, lng, onClose }: MapModalProps) {
           className="
             absolute top-4 right-4 bg-ucsg-warm hover:bg-ucsg-border-dark text-ucsg-brown-600
             border border-ucsg-border-dark rounded-full w-[32px] h-[32px]
-            cursor-pointer text-[0.8rem] flex items-center justify-center
+            cursor-pointer flex items-center justify-center
             transition-colors z-10
           "
         >
-          ✕
+          <X size={15} strokeWidth={2.25} />
         </button>
 
         <h3 className="font-serif text-[1.4rem] font-semibold text-ucsg-brown-900 mb-4 pr-8">

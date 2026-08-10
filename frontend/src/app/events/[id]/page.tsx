@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import { MapPin } from 'lucide-react'
+import { Bell, Calendar, CheckCircle2, ImageOff, MapPin, SearchX } from 'lucide-react'
 import EventImage from '@/components/EventImage'
 import Navbar from '@/components/Navbar'
 import { addReminder, deleteReminder, getEventById, getMyReminders } from '@/lib/api'
@@ -66,11 +66,11 @@ export default function EventDetailPage() {
       if (reminderId) {
         await deleteReminder(reminderId)
         setReminderId(null)
-        setToast('🗑️ Recordatorio eliminado')
+        setToast('Recordatorio eliminado')
       } else {
         const res = await addReminder({ eventId, minutesBefore: 15 })
         setReminderId(res.id)
-        setToast('✅ Guardado en tus recordatorios')
+        setToast('Guardado en tus recordatorios')
       }
     } catch (e: any) {
       setToast(e.message ?? 'No se pudo actualizar el recordatorio')
@@ -101,7 +101,7 @@ export default function EventDetailPage() {
 
           {!loading && error && (
             <div className="bg-white rounded-[18px] p-10 text-center shadow-sm">
-              <p className="text-5xl mb-3">🔍</p>
+              <SearchX size={48} strokeWidth={1.5} className="mx-auto mb-3 text-ucsg-muted" />
               <h1 className="font-serif text-[1.4rem] font-semibold text-ucsg-brown-900 mb-2">
                 Evento no encontrado
               </h1>
@@ -119,7 +119,7 @@ export default function EventDetailPage() {
                 if (images.length === 0) {
                   return (
                     <div className="w-full h-[280px] bg-ucsg-warm-100 flex items-center justify-center">
-                      <span className="text-ucsg-muted text-6xl">📸</span>
+                      <ImageOff size={56} strokeWidth={1.5} className="text-ucsg-muted" />
                     </div>
                   )
                 }
@@ -168,7 +168,7 @@ export default function EventDetailPage() {
 
                 {/* Fecha / Ubicación */}
                 <div className="flex flex-col gap-[9px] bg-ucsg-warm p-[18px] rounded-[11px] mb-[22px] text-[0.92rem] font-semibold text-ucsg-brown border-l-4 border-ucsg-crimson">
-                  <span className="flex items-center gap-[9px]">📅 {formatFullDate(event.eventDate)}</span>
+                  <span className="flex items-center gap-[9px]"><Calendar size={16} strokeWidth={2.25} className="shrink-0" /> {formatFullDate(event.eventDate)}</span>
                   <span className="flex items-center gap-[9px]">
                     <MapPin size={16} strokeWidth={2.25} className="shrink-0" /> {event.zone?.name ?? event.zoneName ?? 'Campus UCSG'}
                     {event.locationText ? ` — ${event.locationText}` : ''}
@@ -208,7 +208,9 @@ export default function EventDetailPage() {
                       : 'bg-ucsg-crimson hover:bg-ucsg-crimson-700'
                   }`}
                 >
-                  {reminderId ? '✔️ Recordatorio activado — toca para cancelar' : '🔔 Recordarme este evento'}
+                  {reminderId
+                    ? <><CheckCircle2 size={18} strokeWidth={2.25} /> Recordatorio activado — toca para cancelar</>
+                    : <><Bell size={18} strokeWidth={2.25} /> Recordarme este evento</>}
                 </button>
 
                 {toast && (

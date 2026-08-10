@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { ImageOff } from 'lucide-react'
 
 interface EventImageProps {
   src: string
@@ -29,7 +30,7 @@ export default function EventImage({ src, alt = '', className = '' }: EventImage
   if (failed) {
     return (
       <div className={`relative overflow-hidden flex items-center justify-center bg-[#f5ede4] ${className}`}>
-        <span className="text-5xl opacity-40">📸</span>
+        <ImageOff size={44} strokeWidth={1.5} className="opacity-40" />
       </div>
     )
   }

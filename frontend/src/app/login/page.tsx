@@ -3,6 +3,7 @@
 import { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { AlertTriangle, Eye, EyeOff, Lock } from 'lucide-react'
 import { login, AccountLockedError } from '@/lib/api'
 import { getStoredUser } from '@/lib/auth'
 
@@ -149,7 +150,7 @@ export default function LoginPage() {
           {isLocked && (
             <div className="mb-5 px-4 py-4 rounded-xl bg-red-100 border-2 border-red-400 text-red-800 text-[0.9rem] flex flex-col gap-1 animate-ucsg-rise">
               <div className="flex items-center gap-2 font-bold text-[0.95rem]">
-                <span>&#128274;</span>
+                <Lock size={16} strokeWidth={2.25} />
                 <span>Cuenta bloqueada</span>
               </div>
               <p className="text-red-700 text-[0.85rem] leading-snug">
@@ -162,7 +163,7 @@ export default function LoginPage() {
           {/* Banner error credenciales */}
           {error && !isLocked && (
             <div className="mb-4 px-4 py-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-800 text-[0.9rem] font-medium flex items-start gap-3 animate-ucsg-rise">
-              <span className="mt-px text-base">&#9888;&#65039;</span>
+              <AlertTriangle size={18} strokeWidth={2.25} className="shrink-0 mt-px" />
               <span>{error}</span>
             </div>
           )}
@@ -246,12 +247,12 @@ export default function LoginPage() {
                   className="
                     absolute right-3 top-1/2 -translate-y-1/2
                     text-ucsg-brown-400 hover:text-ucsg-brown
-                    text-lg transition-colors select-none
+                    transition-colors select-none
                     disabled:opacity-40
                   "
                   aria-label={showPass ? 'Ocultar contrasena' : 'Mostrar contrasena'}
                 >
-                  {showPass ? '\uD83D\uDE48' : '\uD83D\uDC41'}
+                  {showPass ? <EyeOff size={18} strokeWidth={2} /> : <Eye size={18} strokeWidth={2} />}
                 </button>
               </div>
             </div>
