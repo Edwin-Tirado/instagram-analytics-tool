@@ -116,6 +116,17 @@ public class EmailNotificationService {
         send(user.getEmail(), subject, body);
     }
 
+    /**
+     * Genera el HTML de un ícono pequeño embebido (ver {@link EmailIcons}) para
+     * usar dentro de las plantillas, en vez de un emoji directo en el texto —
+     * evita el "tofu" (cuadro vacío) que a veces renderiza el emoji según la
+     * fuente del cliente de correo.
+     */
+    private static String icon(String dataUri, int size) {
+        return "<img src=\"%s\" width=\"%d\" height=\"%d\" alt=\"\" style=\"vertical-align:middle;display:inline-block;\" />"
+            .formatted(dataUri, size, size);
+    }
+
     // ── Core de envío ────────────────────────────────────────────────────────
 
     @Async
@@ -165,7 +176,7 @@ public class EmailNotificationService {
               <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
                 <div style="background:#931934;color:#fff;padding:28px 32px;">
                   <p style="margin:0 0 4px;font-size:13px;opacity:.8;letter-spacing:2px;text-transform:uppercase;">UCSG Eventos</p>
-                  <h1 style="margin:0;font-size:22px;font-weight:700;">Recordatorio guardado ✅</h1>
+                  <h1 style="margin:0;font-size:22px;font-weight:700;">Recordatorio guardado %s</h1>
                 </div>
                 %s
                 <div style="padding:32px;">
@@ -173,13 +184,13 @@ public class EmailNotificationService {
                   <p style="color:#6b5344;margin:0 0 24px;">Tu recordatorio fue registrado exitosamente. Te avisaremos <strong>%s</strong> antes del evento, y también recibirás un aviso <strong>24 horas antes</strong> y otro <strong>15 minutos antes</strong> del inicio.</p>
                   <div style="background:#fdf6f0;border-left:4px solid #931934;padding:18px 20px;border-radius:6px;margin-bottom:28px;">
                     <h2 style="margin:0 0 10px;color:#931934;font-size:17px;">%s</h2>
-                    <p style="margin:4px 0;color:#4a3728;">📅 <strong>%s</strong></p>
-                    <p style="margin:4px 0;color:#4a3728;">📍 <strong>%s</strong></p>
+                    <p style="margin:4px 0;color:#4a3728;">%s <strong>%s</strong></p>
+                    <p style="margin:4px 0;color:#4a3728;">%s <strong>%s</strong></p>
                   </div>
                   <div style="text-align:center;margin-bottom:8px;">
                     <a href="%s" target="_blank"
                        style="display:inline-block;background:#931934;color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 32px;border-radius:8px;letter-spacing:.3px;">
-                      🔔 Recordarme este evento
+                      %s Recordarme este evento
                     </a>
                   </div>
                   <p style="color:#9e8070;font-size:12px;text-align:center;margin:12px 0 0;">Si ya tienes un recordatorio configurado, puedes gestionarlo desde el sitio.</p>
@@ -190,7 +201,11 @@ public class EmailNotificationService {
               </div>
             </body>
             </html>
-            """.formatted(imageHtml, name, label, event.getTitle(), dateStr, zone, ctaUrl, year);
+            """.formatted(
+                icon(EmailIcons.CHECK_WHITE, 20), imageHtml, name, label, event.getTitle(),
+                icon(EmailIcons.CALENDAR_CRIMSON, 15), dateStr,
+                icon(EmailIcons.MAPPIN_CRIMSON, 15), zone,
+                ctaUrl, icon(EmailIcons.BELL_WHITE, 16), year);
     }
 
     private String buildDayReminderHtml(AppUser user, Event event, boolean hasImage) {
@@ -213,7 +228,7 @@ public class EmailNotificationService {
               <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
                 <div style="background:#931934;color:#fff;padding:28px 32px;">
                   <p style="margin:0 0 4px;font-size:13px;opacity:.8;letter-spacing:2px;text-transform:uppercase;">UCSG Eventos</p>
-                  <h1 style="margin:0;font-size:22px;font-weight:700;">¡Hoy es el día! 📅</h1>
+                  <h1 style="margin:0;font-size:22px;font-weight:700;">¡Hoy es el día! %s</h1>
                 </div>
                 %s
                 <div style="padding:32px;">
@@ -221,13 +236,13 @@ public class EmailNotificationService {
                   <p style="color:#6b5344;margin:0 0 24px;">El evento que marcaste comienza <strong>hoy</strong>. No te lo pierdas.</p>
                   <div style="background:#fdf6f0;border-left:4px solid #931934;padding:18px 20px;border-radius:6px;margin-bottom:28px;">
                     <h2 style="margin:0 0 10px;color:#931934;font-size:17px;">%s</h2>
-                    <p style="margin:4px 0;color:#4a3728;">🕐 <strong>Hora de inicio: %s</strong></p>
-                    <p style="margin:4px 0;color:#4a3728;">📍 <strong>%s</strong></p>
+                    <p style="margin:4px 0;color:#4a3728;">%s <strong>Hora de inicio: %s</strong></p>
+                    <p style="margin:4px 0;color:#4a3728;">%s <strong>%s</strong></p>
                   </div>
                   <div style="text-align:center;margin-bottom:8px;">
                     <a href="%s" target="_blank"
                        style="display:inline-block;background:#931934;color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 32px;border-radius:8px;letter-spacing:.3px;">
-                      🔔 Recordarme este evento
+                      %s Recordarme este evento
                     </a>
                   </div>
                   <p style="color:#9e8070;font-size:12px;text-align:center;margin:12px 0 0;">Recibirás un último recordatorio minutos antes de que inicie el evento.</p>
@@ -238,7 +253,11 @@ public class EmailNotificationService {
               </div>
             </body>
             </html>
-            """.formatted(imageHtml, name, event.getTitle(), timeStr, zone, ctaUrl, year);
+            """.formatted(
+                icon(EmailIcons.CALENDAR_WHITE, 20), imageHtml, name, event.getTitle(),
+                icon(EmailIcons.CLOCK_CRIMSON, 15), timeStr,
+                icon(EmailIcons.MAPPIN_CRIMSON, 15), zone,
+                ctaUrl, icon(EmailIcons.BELL_WHITE, 16), year);
     }
 
     private String buildReminderHtml(AppUser user, Event event, Reminder reminder, boolean hasImage) {
@@ -262,7 +281,7 @@ public class EmailNotificationService {
               <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
                 <div style="background:#931934;color:#fff;padding:28px 32px;">
                   <p style="margin:0 0 4px;font-size:13px;opacity:.8;letter-spacing:2px;text-transform:uppercase;">UCSG Eventos</p>
-                  <h1 style="margin:0;font-size:22px;font-weight:700;">⏰ ¡El evento está por comenzar!</h1>
+                  <h1 style="margin:0;font-size:22px;font-weight:700;">%s ¡El evento está por comenzar!</h1>
                 </div>
                 %s
                 <div style="padding:32px;">
@@ -270,13 +289,13 @@ public class EmailNotificationService {
                   <p style="color:#6b5344;margin:0 0 24px;">Faltan <strong>%s</strong> para que inicie el evento.</p>
                   <div style="background:#fdf6f0;border-left:4px solid #931934;padding:18px 20px;border-radius:6px;margin-bottom:28px;">
                     <h2 style="margin:0 0 10px;color:#931934;font-size:17px;">%s</h2>
-                    <p style="margin:4px 0;color:#4a3728;">📅 <strong>%s</strong></p>
-                    <p style="margin:4px 0;color:#4a3728;">📍 <strong>%s</strong></p>
+                    <p style="margin:4px 0;color:#4a3728;">%s <strong>%s</strong></p>
+                    <p style="margin:4px 0;color:#4a3728;">%s <strong>%s</strong></p>
                   </div>
                   <div style="text-align:center;margin-bottom:8px;">
                     <a href="%s" target="_blank"
                        style="display:inline-block;background:#931934;color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 32px;border-radius:8px;letter-spacing:.3px;">
-                      🔔 Recordarme este evento
+                      %s Recordarme este evento
                     </a>
                   </div>
                   <p style="color:#9e8070;font-size:12px;text-align:center;margin:12px 0 0;">Este fue el último recordatorio configurado para este evento. ¡Que lo disfrutes!</p>
@@ -287,7 +306,11 @@ public class EmailNotificationService {
               </div>
             </body>
             </html>
-            """.formatted(imageHtml, name, label, event.getTitle(), dateStr, zone, ctaUrl, year);
+            """.formatted(
+                icon(EmailIcons.CLOCK_WHITE, 20), imageHtml, name, label, event.getTitle(),
+                icon(EmailIcons.CALENDAR_CRIMSON, 15), dateStr,
+                icon(EmailIcons.MAPPIN_CRIMSON, 15), zone,
+                ctaUrl, icon(EmailIcons.BELL_WHITE, 16), year);
     }
 
     private String buildNewEventHtml(AppUser user, Event event, boolean hasImage) {
@@ -310,7 +333,7 @@ public class EmailNotificationService {
               <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
                 <div style="background:#931934;color:#fff;padding:28px 32px;">
                   <p style="margin:0 0 4px;font-size:13px;opacity:.8;letter-spacing:2px;text-transform:uppercase;">UCSG Eventos</p>
-                  <h1 style="margin:0;font-size:22px;font-weight:700;">Nuevo evento en tu zona 🎉</h1>
+                  <h1 style="margin:0;font-size:22px;font-weight:700;">Nuevo evento en tu zona %s</h1>
                 </div>
                 %s
                 <div style="padding:32px;">
@@ -318,13 +341,13 @@ public class EmailNotificationService {
                   <p style="color:#6b5344;margin:0 0 24px;">Se acaba de aprobar un evento en <strong>%s</strong>, una zona donde ya has puesto recordatorios antes. Puede interesarte:</p>
                   <div style="background:#fdf6f0;border-left:4px solid #931934;padding:18px 20px;border-radius:6px;margin-bottom:28px;">
                     <h2 style="margin:0 0 10px;color:#931934;font-size:17px;">%s</h2>
-                    <p style="margin:4px 0;color:#4a3728;">📅 <strong>%s</strong></p>
-                    <p style="margin:4px 0;color:#4a3728;">📍 <strong>%s</strong></p>
+                    <p style="margin:4px 0;color:#4a3728;">%s <strong>%s</strong></p>
+                    <p style="margin:4px 0;color:#4a3728;">%s <strong>%s</strong></p>
                   </div>
                   <div style="text-align:center;margin-bottom:8px;">
                     <a href="%s" target="_blank"
                        style="display:inline-block;background:#931934;color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 32px;border-radius:8px;letter-spacing:.3px;">
-                      🔔 Recordarme este evento
+                      %s Recordarme este evento
                     </a>
                   </div>
                 </div>
@@ -334,7 +357,11 @@ public class EmailNotificationService {
               </div>
             </body>
             </html>
-            """.formatted(imageHtml, name, zone, event.getTitle(), dateStr, zone, ctaUrl, year);
+            """.formatted(
+                icon(EmailIcons.PARTY_WHITE, 20), imageHtml, name, zone, event.getTitle(),
+                icon(EmailIcons.CALENDAR_CRIMSON, 15), dateStr,
+                icon(EmailIcons.MAPPIN_CRIMSON, 15), zone,
+                ctaUrl, icon(EmailIcons.BELL_WHITE, 16), year);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -462,7 +489,7 @@ public class EmailNotificationService {
               <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
                 <div style="background:#931934;color:#fff;padding:28px 32px;">
                   <p style="margin:0 0 4px;font-size:13px;opacity:.8;letter-spacing:2px;text-transform:uppercase;">UCSG Eventos</p>
-                  <h1 style="margin:0;font-size:22px;font-weight:700;">Evento actualizado ✏️</h1>
+                  <h1 style="margin:0;font-size:22px;font-weight:700;">Evento actualizado %s</h1>
                 </div>
                 %s
                 <div style="padding:32px;">
@@ -470,8 +497,8 @@ public class EmailNotificationService {
                   <p style="color:#6b5344;margin:0 0 24px;">Un evento en el que tienes un recordatorio ha sido <strong>modificado</strong>. Aquí están los datos actualizados:</p>
                   <div style="background:#fdf6f0;border-left:4px solid #931934;padding:18px 20px;border-radius:6px;margin-bottom:28px;">
                     <h2 style="margin:0 0 10px;color:#931934;font-size:17px;">%s</h2>
-                    <p style="margin:4px 0;color:#4a3728;">📅 <strong>%s</strong></p>
-                    <p style="margin:4px 0;color:#4a3728;">📍 <strong>%s</strong></p>
+                    <p style="margin:4px 0;color:#4a3728;">%s <strong>%s</strong></p>
+                    <p style="margin:4px 0;color:#4a3728;">%s <strong>%s</strong></p>
                   </div>
                   <div style="text-align:center;margin-bottom:8px;">
                     <a href="%s" target="_blank"
@@ -487,7 +514,11 @@ public class EmailNotificationService {
               </div>
             </body>
             </html>
-            """.formatted(imageHtml, name, event.getTitle(), dateStr, zone, ctaUrl, year);
+            """.formatted(
+                icon(EmailIcons.PENCIL_WHITE, 18), imageHtml, name, event.getTitle(),
+                icon(EmailIcons.CALENDAR_CRIMSON, 15), dateStr,
+                icon(EmailIcons.MAPPIN_CRIMSON, 15), zone,
+                ctaUrl, year);
     }
 
     private String buildEventDeletedHtml(AppUser user, String eventTitle) {
@@ -505,7 +536,7 @@ public class EmailNotificationService {
               <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
                 <div style="background:#931934;color:#fff;padding:28px 32px;">
                   <p style="margin:0 0 4px;font-size:13px;opacity:.8;letter-spacing:2px;text-transform:uppercase;">UCSG Eventos</p>
-                  <h1 style="margin:0;font-size:22px;font-weight:700;">Evento cancelado ❌</h1>
+                  <h1 style="margin:0;font-size:22px;font-weight:700;">Evento cancelado %s</h1>
                 </div>
                 <div style="padding:32px;">
                   <p style="color:#4a3728;margin:0 0 8px;">Hola, <strong>%s</strong></p>
@@ -527,6 +558,6 @@ public class EmailNotificationService {
               </div>
             </body>
             </html>
-            """.formatted(name, eventTitle, frontendUrl, year);
+            """.formatted(icon(EmailIcons.XCIRCLE_WHITE, 20), name, eventTitle, frontendUrl, year);
     }
 }

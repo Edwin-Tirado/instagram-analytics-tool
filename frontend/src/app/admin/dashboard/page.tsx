@@ -1109,7 +1109,7 @@ function InstagramTab() {
             <span className="text-sm text-[#7a6652]">Cargando…</span>
           ) : status?.configured ? (
             <div className="text-sm text-[#2d1b0e]">
-              <span className="font-mono bg-[#f9f6f1] px-2 py-1 rounded">{status.maskedToken}</span>
+              <span className="block font-mono bg-[#f9f6f1] px-2 py-1 rounded break-all">{status.maskedToken}</span>
               {status.updatedAt && (
                 <span className="text-xs text-[#7a6652] ml-2">
                   actualizado {new Date(status.updatedAt).toLocaleString('es-EC')}
