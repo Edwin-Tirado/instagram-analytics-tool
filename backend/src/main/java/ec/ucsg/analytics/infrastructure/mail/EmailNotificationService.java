@@ -181,7 +181,7 @@ public class EmailNotificationService {
                 %s
                 <div style="padding:32px;">
                   <p style="color:#4a3728;margin:0 0 8px;">Hola, <strong>%s</strong></p>
-                  <p style="color:#6b5344;margin:0 0 24px;">Tu recordatorio fue registrado exitosamente. Te avisaremos <strong>%s</strong> antes del evento, y también recibirás un aviso <strong>24 horas antes</strong> y otro <strong>15 minutos antes</strong> del inicio.</p>
+                  <p style="color:#6b5344;margin:0 0 24px;">Tu recordatorio fue registrado exitosamente. Te avisaremos <strong>%s</strong> antes del evento, y también recibirás un aviso la mañana del evento (8:00 a.m.) para que no se te pase.</p>
                   <div style="background:#fdf6f0;border-left:4px solid #931934;padding:18px 20px;border-radius:6px;margin-bottom:28px;">
                     <h2 style="margin:0 0 10px;color:#931934;font-size:17px;">%s</h2>
                     <p style="margin:4px 0;color:#4a3728;">%s <strong>%s</strong></p>
@@ -195,9 +195,7 @@ public class EmailNotificationService {
                   </div>
                   <p style="color:#9e8070;font-size:12px;text-align:center;margin:12px 0 0;">Si ya tienes un recordatorio configurado, puedes gestionarlo desde el sitio.</p>
                 </div>
-                <div style="background:#fdf6f0;padding:16px 32px;text-align:center;color:#b89f90;font-size:12px;">
-                  © %d Universidad Católica de Santiago de Guayaquil
-                </div>
+                %s
               </div>
             </body>
             </html>
@@ -205,7 +203,7 @@ public class EmailNotificationService {
                 icon(EmailIcons.CHECK_WHITE, 20), imageHtml, name, label, event.getTitle(),
                 icon(EmailIcons.CALENDAR_CRIMSON, 15), dateStr,
                 icon(EmailIcons.MAPPIN_CRIMSON, 15), zone,
-                ctaUrl, icon(EmailIcons.BELL_WHITE, 16), year);
+                ctaUrl, icon(EmailIcons.BELL_WHITE, 16), buildContactFooterHtml(year));
     }
 
     private String buildDayReminderHtml(AppUser user, Event event, boolean hasImage) {
@@ -247,9 +245,7 @@ public class EmailNotificationService {
                   </div>
                   <p style="color:#9e8070;font-size:12px;text-align:center;margin:12px 0 0;">Recibirás un último recordatorio minutos antes de que inicie el evento.</p>
                 </div>
-                <div style="background:#fdf6f0;padding:16px 32px;text-align:center;color:#b89f90;font-size:12px;">
-                  © %d Universidad Católica de Santiago de Guayaquil
-                </div>
+                %s
               </div>
             </body>
             </html>
@@ -257,7 +253,7 @@ public class EmailNotificationService {
                 icon(EmailIcons.CALENDAR_WHITE, 20), imageHtml, name, event.getTitle(),
                 icon(EmailIcons.CLOCK_CRIMSON, 15), timeStr,
                 icon(EmailIcons.MAPPIN_CRIMSON, 15), zone,
-                ctaUrl, icon(EmailIcons.BELL_WHITE, 16), year);
+                ctaUrl, icon(EmailIcons.BELL_WHITE, 16), buildContactFooterHtml(year));
     }
 
     private String buildReminderHtml(AppUser user, Event event, Reminder reminder, boolean hasImage) {
@@ -300,9 +296,7 @@ public class EmailNotificationService {
                   </div>
                   <p style="color:#9e8070;font-size:12px;text-align:center;margin:12px 0 0;">Este fue el último recordatorio configurado para este evento. ¡Que lo disfrutes!</p>
                 </div>
-                <div style="background:#fdf6f0;padding:16px 32px;text-align:center;color:#b89f90;font-size:12px;">
-                  © %d Universidad Católica de Santiago de Guayaquil
-                </div>
+                %s
               </div>
             </body>
             </html>
@@ -310,7 +304,7 @@ public class EmailNotificationService {
                 icon(EmailIcons.CLOCK_WHITE, 20), imageHtml, name, label, event.getTitle(),
                 icon(EmailIcons.CALENDAR_CRIMSON, 15), dateStr,
                 icon(EmailIcons.MAPPIN_CRIMSON, 15), zone,
-                ctaUrl, icon(EmailIcons.BELL_WHITE, 16), year);
+                ctaUrl, icon(EmailIcons.BELL_WHITE, 16), buildContactFooterHtml(year));
     }
 
     private String buildNewEventHtml(AppUser user, Event event, boolean hasImage) {
@@ -351,9 +345,7 @@ public class EmailNotificationService {
                     </a>
                   </div>
                 </div>
-                <div style="background:#fdf6f0;padding:16px 32px;text-align:center;color:#b89f90;font-size:12px;">
-                  © %d Universidad Católica de Santiago de Guayaquil
-                </div>
+                %s
               </div>
             </body>
             </html>
@@ -361,7 +353,7 @@ public class EmailNotificationService {
                 icon(EmailIcons.PARTY_WHITE, 20), imageHtml, name, zone, event.getTitle(),
                 icon(EmailIcons.CALENDAR_CRIMSON, 15), dateStr,
                 icon(EmailIcons.MAPPIN_CRIMSON, 15), zone,
-                ctaUrl, icon(EmailIcons.BELL_WHITE, 16), year);
+                ctaUrl, icon(EmailIcons.BELL_WHITE, 16), buildContactFooterHtml(year));
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -452,6 +444,20 @@ public class EmailNotificationService {
         return frontendUrl + "/events/" + event.getId();
     }
 
+    /** Pie de página con los datos de contacto institucionales, común a todas las plantillas. */
+    private String buildContactFooterHtml(int year) {
+        return """
+            <div style="background:#fdf6f0;padding:24px 32px;text-align:center;color:#6b5344;font-size:12px;border-top:1px solid #eaded3;">
+              <p style="margin:0 0 10px;color:#931934;font-weight:700;font-size:13px;letter-spacing:1px;">CONTÁCTENOS</p>
+              <p style="margin:2px 0;">Teléfono: +593 4 3804600 &nbsp;·&nbsp; WhatsApp: <a href="https://wa.me/593990994445" style="color:#6b5344;text-decoration:none;">0990994445</a></p>
+              <p style="margin:2px 0;">Av. Carlos Julio Arosemena Km 1 ½</p>
+              <p style="margin:2px 0;"><a href="mailto:admisiones@cu.ucsg.edu.ec" style="color:#6b5344;text-decoration:none;">admisiones@cu.ucsg.edu.ec</a> &nbsp;·&nbsp; <a href="mailto:info@cu.ucsg.edu.ec" style="color:#6b5344;text-decoration:none;">info@cu.ucsg.edu.ec</a></p>
+              <p style="margin:10px 0 0;font-weight:600;color:#931934;">Sala de Prensa UCSG &nbsp;·&nbsp; <a href="mailto:info@cu.ucsg.edu.ec" style="color:#931934;text-decoration:none;">Envíenos su mensaje</a></p>
+              <p style="margin:16px 0 0;color:#b89f90;">© %d Universidad Católica de Santiago de Guayaquil</p>
+            </div>
+            """.formatted(year);
+    }
+
     /** Escapa caracteres HTML en atributos de imagen. */
     private String escapeHtml(String text) {
         if (text == null) return "";
@@ -508,9 +514,7 @@ public class EmailNotificationService {
                   </div>
                   <p style="color:#9e8070;font-size:12px;text-align:center;margin:12px 0 0;">Si los nuevos datos no te convienen, puedes cancelar tu recordatorio desde el sitio.</p>
                 </div>
-                <div style="background:#fdf6f0;padding:16px 32px;text-align:center;color:#b89f90;font-size:12px;">
-                  © %d Universidad Católica de Santiago de Guayaquil
-                </div>
+                %s
               </div>
             </body>
             </html>
@@ -518,7 +522,7 @@ public class EmailNotificationService {
                 icon(EmailIcons.PENCIL_WHITE, 18), imageHtml, name, event.getTitle(),
                 icon(EmailIcons.CALENDAR_CRIMSON, 15), dateStr,
                 icon(EmailIcons.MAPPIN_CRIMSON, 15), zone,
-                ctaUrl, year);
+                ctaUrl, buildContactFooterHtml(year));
     }
 
     private String buildEventDeletedHtml(AppUser user, String eventTitle) {
@@ -552,12 +556,10 @@ public class EmailNotificationService {
                     </a>
                   </div>
                 </div>
-                <div style="background:#fdf6f0;padding:16px 32px;text-align:center;color:#b89f90;font-size:12px;">
-                  © %d Universidad Católica de Santiago de Guayaquil
-                </div>
+                %s
               </div>
             </body>
             </html>
-            """.formatted(icon(EmailIcons.XCIRCLE_WHITE, 20), name, eventTitle, frontendUrl, year);
+            """.formatted(icon(EmailIcons.XCIRCLE_WHITE, 20), name, eventTitle, frontendUrl, buildContactFooterHtml(year));
     }
 }
