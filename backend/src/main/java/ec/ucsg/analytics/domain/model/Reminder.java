@@ -70,10 +70,10 @@ public class Reminder {
     @Column(name = "sent_at")
     private LocalDateTime sentAt;
 
-    /** true cuando se envió el email "hoy es el evento" (a las 08:00 del día del evento) */
-    @Column(name = "day_reminder_sent", nullable = false)
+    /** true cuando se envió el email fijo de "3 días antes del evento" */
+    @Column(name = "three_days_reminder_sent", nullable = false)
     @Builder.Default
-    private boolean dayReminderSent = false;
+    private boolean threeDaysReminderSent = false;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -84,7 +84,7 @@ public class Reminder {
         this.sentAt = LocalDateTime.now();
     }
 
-    public void markDayReminderSent() {
-        this.dayReminderSent = true;
+    public void markThreeDaysReminderSent() {
+        this.threeDaysReminderSent = true;
     }
 }

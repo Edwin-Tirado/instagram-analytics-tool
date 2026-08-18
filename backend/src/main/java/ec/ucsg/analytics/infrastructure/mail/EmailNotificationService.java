@@ -33,9 +33,6 @@ public class EmailNotificationService {
     private static final DateTimeFormatter DATE_FORMAT =
         DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM 'de' yyyy 'a las' HH:mm", new Locale("es", "EC"));
 
-    private static final DateTimeFormatter TIME_FORMAT =
-        DateTimeFormatter.ofPattern("HH:mm");
-
     /** Content-ID de la imagen embebida — debe coincidir entre el HTML (cid:) y el adjunto inline. */
     private static final String INLINE_IMAGE_CID = "eventImage";
 
@@ -67,13 +64,13 @@ public class EmailNotificationService {
         send(user.getEmail(), subject, body, image.orElse(null));
     }
 
-    // ── 2. Email del día del evento (a las 08:00) ────────────────────────────
+    // ── 2. Recordatorio fijo de 3 días antes del evento ──────────────────────
 
     @Async
-    public void sendDayReminderEmail(AppUser user, Event event) {
+    public void sendThreeDaysBeforeEmail(AppUser user, Event event) {
         Optional<InlineImage> image = loadInlineImage(event);
-        String subject = "📅 Hoy es el día: " + event.getTitle();
-        String body    = buildDayReminderHtml(user, event, image.isPresent());
+        String subject = "📅 Tu evento se acerca: " + event.getTitle();
+        String body    = buildThreeDaysBeforeHtml(user, event, image.isPresent());
         send(user.getEmail(), subject, body, image.orElse(null));
     }
 
@@ -181,7 +178,7 @@ public class EmailNotificationService {
                 %s
                 <div style="padding:32px;">
                   <p style="color:#4a3728;margin:0 0 8px;">Hola, <strong>%s</strong></p>
-                  <p style="color:#6b5344;margin:0 0 24px;">Tu recordatorio fue registrado exitosamente. Te avisaremos <strong>%s</strong> antes del evento, y también recibirás un aviso la mañana del evento (8:00 a.m.) para que no se te pase.</p>
+                  <p style="color:#6b5344;margin:0 0 24px;">Tu recordatorio fue registrado exitosamente. Te avisaremos <strong>%s</strong> antes del evento, y también recibirás un aviso <strong>3 días antes</strong> para que te vayas preparando.</p>
                   <div style="background:#fdf6f0;border-left:4px solid #931934;padding:18px 20px;border-radius:6px;margin-bottom:28px;">
                     <h2 style="margin:0 0 10px;color:#931934;font-size:17px;">%s</h2>
                     <p style="margin:4px 0;color:#4a3728;">%s <strong>%s</strong></p>
@@ -206,9 +203,9 @@ public class EmailNotificationService {
                 ctaUrl, icon(EmailIcons.BELL_WHITE, 16), buildContactFooterHtml(year));
     }
 
-    private String buildDayReminderHtml(AppUser user, Event event, boolean hasImage) {
-        String timeStr   = event.getEventDate() != null
-            ? event.getEventDate().format(TIME_FORMAT) : "—";
+    private String buildThreeDaysBeforeHtml(AppUser user, Event event, boolean hasImage) {
+        String dateStr   = event.getEventDate() != null
+            ? event.getEventDate().format(DATE_FORMAT) : "Fecha por confirmar";
         String zone      = event.getZone() != null ? event.getZone().getName() : "Campus UCSG";
         String name      = user.getFullName() != null ? user.getFullName() : user.getEmail();
         String imageHtml = buildImageBlock(hasImage, event.getTitle());
@@ -226,15 +223,15 @@ public class EmailNotificationService {
               <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
                 <div style="background:#931934;color:#fff;padding:28px 32px;">
                   <p style="margin:0 0 4px;font-size:13px;opacity:.8;letter-spacing:2px;text-transform:uppercase;">UCSG Eventos</p>
-                  <h1 style="margin:0;font-size:22px;font-weight:700;">¡Hoy es el día! %s</h1>
+                  <h1 style="margin:0;font-size:22px;font-weight:700;">%s ¡Faltan 3 días!</h1>
                 </div>
                 %s
                 <div style="padding:32px;">
                   <p style="color:#4a3728;margin:0 0 8px;">Hola, <strong>%s</strong></p>
-                  <p style="color:#6b5344;margin:0 0 24px;">El evento que marcaste comienza <strong>hoy</strong>. No te lo pierdas.</p>
+                  <p style="color:#6b5344;margin:0 0 24px;">El evento que marcaste está a <strong>3 días</strong> de comenzar. Aquí tienes los detalles otra vez:</p>
                   <div style="background:#fdf6f0;border-left:4px solid #931934;padding:18px 20px;border-radius:6px;margin-bottom:28px;">
                     <h2 style="margin:0 0 10px;color:#931934;font-size:17px;">%s</h2>
-                    <p style="margin:4px 0;color:#4a3728;">%s <strong>Hora de inicio: %s</strong></p>
+                    <p style="margin:4px 0;color:#4a3728;">%s <strong>%s</strong></p>
                     <p style="margin:4px 0;color:#4a3728;">%s <strong>%s</strong></p>
                   </div>
                   <div style="text-align:center;margin-bottom:8px;">
@@ -251,7 +248,7 @@ public class EmailNotificationService {
             </html>
             """.formatted(
                 icon(EmailIcons.CALENDAR_WHITE, 20), imageHtml, name, event.getTitle(),
-                icon(EmailIcons.CLOCK_CRIMSON, 15), timeStr,
+                icon(EmailIcons.CALENDAR_CRIMSON, 15), dateStr,
                 icon(EmailIcons.MAPPIN_CRIMSON, 15), zone,
                 ctaUrl, icon(EmailIcons.BELL_WHITE, 16), buildContactFooterHtml(year));
     }

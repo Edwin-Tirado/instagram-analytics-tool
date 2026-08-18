@@ -51,15 +51,14 @@ public interface ReminderRepository extends JpaRepository<Reminder, UUID> {
     List<Reminder> findDueReminders(@Param("now") LocalDateTime now);
 
     /**
-     * Recordatorios cuyo evento es HOY y cuyo email de "día del evento"
-     * aún no fue enviado. Se dispara a partir de las 08:00 del día del evento.
+     * Recordatorios cuya ventana de 3-días-antes ya venció y cuyo email fijo
+     * de "3 días antes del evento" aún no fue enviado.
      */
     @Query(value = """
         SELECT r.* FROM reminders r
         JOIN events e ON r.event_id = e.id
-        WHERE r.day_reminder_sent = false
-          AND DATE(e.event_date) = DATE(:now)
-          AND :now >= DATE(:now) + TIME '08:00:00'
+        WHERE r.three_days_reminder_sent = false
+          AND e.event_date - INTERVAL '3 days' <= :now
         """, nativeQuery = true)
-    List<Reminder> findDayReminders(@Param("now") LocalDateTime now);
+    List<Reminder> findThreeDaysBeforeReminders(@Param("now") LocalDateTime now);
 }

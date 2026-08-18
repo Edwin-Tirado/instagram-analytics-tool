@@ -17,7 +17,7 @@ import java.util.List;
  *
  * Flujo de emails por recordatorio:
  *   1. Confirmación → inmediata al crear el recordatorio (ReminderService)
- *   2. Día del evento → a las 08:00 del día del evento (processDayReminders)
+ *   2. 3 días antes → fijo, para todos los recordatorios (processThreeDaysBeforeReminders)
  *   3. X minutos antes → según minutesBefore configurado (processDueReminders)
  *
  * Nota importante sobre LAZY loading:
@@ -66,15 +66,15 @@ public class ReminderNotificationJob {
         }
     }
 
-    // ── Email del día del evento (08:00) ────────────────────────────────────
+    // ── Email fijo de 3 días antes ───────────────────────────────────────────
 
     @Scheduled(fixedDelay = 60_000)
     @Transactional
-    public void processDayReminders() {
-        List<Reminder> due = reminderRepository.findDayReminders(LocalDateTime.now());
+    public void processThreeDaysBeforeReminders() {
+        List<Reminder> due = reminderRepository.findThreeDaysBeforeReminders(LocalDateTime.now());
         if (due.isEmpty()) return;
 
-        log.info("Procesando {} recordatorios de día del evento", due.size());
+        log.info("Procesando {} recordatorios de 3 días antes", due.size());
 
         for (Reminder reminder : due) {
             try {
@@ -83,15 +83,15 @@ public class ReminderNotificationJob {
                 if (reminder.getEvent().getZone() != null) reminder.getEvent().getZone().getName();
                 log.debug("Imágenes pre-cargadas: {} para recordatorio {}", imageCount, reminder.getId());
 
-                emailService.sendDayReminderEmail(
+                emailService.sendThreeDaysBeforeEmail(
                     reminder.getUser(),
                     reminder.getEvent()
                 );
-                reminder.markDayReminderSent();
+                reminder.markThreeDaysReminderSent();
                 reminderRepository.save(reminder);
-                log.debug("Email día-del-evento enviado para recordatorio {}", reminder.getId());
+                log.debug("Email de 3 días antes enviado para recordatorio {}", reminder.getId());
             } catch (Exception e) {
-                log.error("Error enviando email día-del-evento {} — se reintentará: {}", reminder.getId(), e.getMessage());
+                log.error("Error enviando email de 3 días antes {} — se reintentará: {}", reminder.getId(), e.getMessage());
             }
         }
     }
