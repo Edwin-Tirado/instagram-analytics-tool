@@ -39,15 +39,17 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
     );
 
     /**
-     * Todos los eventos APROBADOS para la cartelera pública — sin filtrar por
-     * fecha. Antes exigía eventDate >= ahora, lo que ocultaba eventos ya
-     * publicados sin fecha (CaptionParser no la encontró) o con fecha pasada.
-     * "Publicado" debe significar visible, punto — la fecha es solo para
-     * ordenar, no para decidir si se muestra.
+     * Eventos APROBADOS y aún no finalizados para la cartelera pública.
+     * Oculta eventos con fecha ya pasada — un evento vencido no le sirve a
+     * nadie en la vista pública y solo genera confusión ("¿por qué me
+     * anuncian algo que ya pasó?"). Sigue mostrando los que no tienen fecha
+     * (CaptionParser no la encontró): el admin/supervisor los ve y corrige
+     * en su panel, que no filtra por fecha.
      */
     @Query("""
         SELECT e FROM Event e
         WHERE e.status = 'APPROVED'
+          AND (e.eventDate IS NULL OR e.eventDate >= CURRENT_TIMESTAMP)
         ORDER BY e.eventDate ASC NULLS LAST
         """)
     Page<Event> findUpcomingApproved(Pageable pageable);

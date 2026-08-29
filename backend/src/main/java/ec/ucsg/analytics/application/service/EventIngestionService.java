@@ -56,6 +56,9 @@ public class EventIngestionService {
     private static final String AUTO_REJECT_REASON =
         "AUTO: contenido publicitario o spam detectado por el clasificador";
 
+    private static final String NO_DATE_REJECT_REASON =
+        "AUTO: el caption tiene señales de evento pero no se pudo detectar fecha/hora";
+
     private final InstagramGraphApiClient      apiClient;
     private final InstagramImageUrlRefresher   imageUrlRefresher;
     private final EventClassificationService   classificationService;
@@ -194,7 +197,17 @@ public class EventIngestionService {
 
         // 5. Manejar spam antes de buscar duplicados
         if (classification == ClassificationResult.AUTO_REJECTED) {
-            persistRejectedEvent(post, title, caption, zone.orElse(null), eventDate);
+            persistRejectedEvent(post, title, caption, zone.orElse(null), eventDate, AUTO_REJECT_REASON);
+            return IngestionOutcome.REJECTED;
+        }
+
+        // 5b. Sin fecha/hora detectable → no es un evento accionable (no se
+        // puede recordar ni mostrar "cuándo"), no se autopublica. Palabras
+        // clave genéricas como "aula" o "facultad" aparecen en muchos posts
+        // que no son convocatorias a un evento puntual.
+        if (eventDate == null) {
+            persistRejectedEvent(post, title, caption, zone.orElse(null), null, NO_DATE_REJECT_REASON);
+            log.debug("Post con señales de evento pero sin fecha detectable, no se publica: {}", post.getId());
             return IngestionOutcome.REJECTED;
         }
 
@@ -239,9 +252,9 @@ public class EventIngestionService {
 
     private void persistRejectedEvent(
             InstagramMediaItem post, String title,
-            String caption, Zone zone, LocalDateTime eventDate) {
+            String caption, Zone zone, LocalDateTime eventDate, String reason) {
 
-        Event spam = Event.builder()
+        Event rejected = Event.builder()
             .title(title)
             .caption(caption)
             .locationText(zone != null ? zone.getName() : null)
@@ -249,12 +262,12 @@ public class EventIngestionService {
             .eventDate(eventDate)
             .status(EventStatus.REJECTED)
             .instagramPostId(post.getId())
-            .rejectionReason(AUTO_REJECT_REASON)
+            .rejectionReason(reason)
             .build();
 
-        appendImagesToEvent(spam, post);
-        eventRepository.save(spam);
-        log.info("Post rechazado automáticamente (spam): {}", post.getId());
+        appendImagesToEvent(rejected, post);
+        eventRepository.save(rejected);
+        log.info("Post rechazado automáticamente ({}): {}", reason, post.getId());
     }
 
     /**
